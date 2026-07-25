@@ -56,7 +56,7 @@ on MIT's suite.
 | Erasable memory (destructive read at T5, rewrite before T10, editing registers) | Working | `memory_suite` |
 | Fixed memory (rope layout, parity, bank + superbank addressing) | Working | `memory_suite`; parity alarm confirmed by `cpu_suite` |
 | Banking (EB, FB, BB, FEXT) | Working | `memory_suite`; flight ropes switch banks continuously without alarming |
-| Scaler / timer (17 stages, documented taps) | Working | `timing_suite`: divisor, stage-10 rising edge → TIME1/TIME3, stage-6 → TIME6 gated on channel 13 bit 16 |
+| Scaler / timer (17 stages, documented taps) | Working | `timing_suite`: divisor, stage-10 rising edge → TIME1/TIME3, stage-6 → TIME6 gated on channel 13 bit 16; F05A drive counters via the `counters` probe |
 | Hardware alarms (PARITY FAIL, TC TRAP, RUPT LOCK, NIGHT WATCHMAN) | Working | `timing_suite`, one test per alarm, isolated with `alarm_inhibit` |
 | Priority control — counters (PINC, MINC, PCDU, MCDU, DINC) | Working | `timing_suite`: MCT stealing, address-order priority, TIME1→TIME2 carry, TIME3→T3RUPT |
 | Priority control — interrupts (vectoring, KRPT, RESUME, no nesting) | Working | Exercised by every rope boot; `cpu_suite` covers INHINT/RELINT |
@@ -75,6 +75,7 @@ on MIT's suite.
 | Mid-instruction integrity verification | Working | `integrity` probe: MP/DV round trips give the same right answer under counter traffic |
 | Runnable oracle | Working | `tools/oracle/build_oracle.sh`; pulse-by-pulse diff against ours |
 | Instruction-set differential test | Working | `oracle_differential` in CTest; 2496/2496 cases agree over 21 instructions |
+| Long-run rope state hashes | Working | `rope_state_hashes` in CTest; 9 ropes, identical on both build types |
 | Probes for the remaining emergent behaviour | **Partial** | See gaps |
 
 ## Software that runs
@@ -120,7 +121,8 @@ Each has a reason and a cost to close, and each is a named item in
 
 - **Probe coverage is thin.** Instruction timing, counter interference, branch
   asymmetry, interrupt discipline and mid-instruction integrity are covered.
-  Not yet probed: a counter storm heavy enough to starve the program outright.
+  A counter storm is now probed too: six drive counters at 3.2 kHz take a third
+  of the machine (FINDINGS #45).
 - **Instruction results are now differential-tested** against the oracle:
   2496/2496 cases over 21 instructions, including both ones'-complement zeroes
   and the range extremes (FINDINGS #42). What that does *not* cover is the

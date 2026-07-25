@@ -209,3 +209,37 @@ runs in CTest; the full one takes about two minutes and is run by hand.
 | # | Harness lesson |
 |---|---|
 | 43 | **The differential rope must be per-process.** A background full sweep overlapping another invocation shared one `build/differential.bin` and reported 403 phantom mismatches — including a confident "DCS 112/256", which passed 256/256 the moment it was run on its own. Each run now writes its own PID-suffixed rope and removes it at exit. Worth remembering the shape of it: a differential test that shares mutable state with itself will accuse the thing it is testing. |
+
+## The counter storm, and two ways of measuring it wrong
+
+| # | Finding |
+|---|---|
+| 44 | **F05A was never implemented.** The scaler's own header comment listed the 3.2 kHz tap that turns channel-14 bits into drive-counter requests, and the code did not have it — so the six counters a program can raise against itself never requested anything. Found by a probe that set those bits and measured no slowdown at all. |
+| 45 | **With it, a program can starve itself measurably.** The same 64-iteration loop takes 396 MCTs quiet, 404 with TIME6 counting, and **529 under six drive counters at 3.2 kHz** — a third of the machine gone to peripherals the program never reads. This is the Apollo 11 1201/1202 mechanism at full strength, and it is emergent: priority control steals the cycles, nothing models "counter overhead". |
+
+The figure is arithmetically consistent, which matters because the first two
+attempts were not:
+
+- 6 counters x 3200 Hz over the 6.2 ms window predicts 119 stolen cycles;
+  measured 125, the balance being TIME6 still running.
+- Each drive counter shows exactly 20 decrements, and 6 x 20 = 120.
+
+**The first measurement said 5597 stolen MCTs — eleven times the truth.** The
+probe ran 256 iterations, which took it past ~120 ms, at which point RUPT LOCK
+correctly restarted the machine: a program that never enables an interrupt
+source is exactly what that alarm is for. The restart re-ran the whole probe,
+so the closing sentinel fired on the second pass and the window it reported was
+fiction. Nothing in the harness objected — the run had a `stop_at`, the goldens
+were self-consistent, and the number was merely enormous.
+
+What caught it was arithmetic. 5597 stolen cycles needs ~66 000 requests per
+second and six counters at 3.2 kHz can only produce 19 200; and the counter
+cells themselves had decremented only 77 times each, which is not 5597. The
+lesson is narrower than "check your work": **an emergent measurement should be
+reconciled against the rate that is supposed to produce it, and against a
+second, independent count of the same events.** A probe that only reports a
+duration cannot tell you it has been restarted.
+
+The loop is now short enough to finish well inside the alarm window, rather than
+suppressing the alarm — the machine is behaving correctly in both cases and only
+one of them is a useful experiment.

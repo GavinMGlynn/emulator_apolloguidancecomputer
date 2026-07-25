@@ -53,6 +53,33 @@ void agc_scaler_tick(agc *m)
     s->prev = s->state;
     s->state++;
 
+    /* F05A, 3.2 kHz: the drive counters. Each bit the program leaves set in
+     * channel 14 asks for one down-count on its counter, 3200 times a second,
+     * and each of those steals a whole Memory Cycle Time from the program.
+     * Six bits at once is the heaviest counter load a program can raise against
+     * itself — around a quarter of the machine — and it is the mechanism behind
+     * the Apollo 11 1201/1202 alarms.
+     *
+     * The counters are driven here; what they would drive in turn (the CDU
+     * error counters, gyro torquing) needs a CDU and an IMU, which is the
+     * POUT/MOUT approximation recorded in docs/PROJECT_STATUS.md. */
+    if (edge_a(s, 5)) {
+        agc_word chan14 = agc_cpu_read_channel(m, AGC_CH_GYRO);
+        static const struct { agc_word bit; unsigned counter; } drives[] = {
+            { AGC_BIT(10), AGC_CNT_GYROD },
+            { AGC_BIT(11), AGC_CNT_SHAFTD },
+            { AGC_BIT(12), AGC_CNT_TRUND },
+            { AGC_BIT(13), AGC_CNT_CDUZD },
+            { AGC_BIT(14), AGC_CNT_CDUYD },
+            { AGC_BIT(15), AGC_CNT_CDUXD },
+        };
+        for (size_t i = 0; i < sizeof drives / sizeof *drives; ++i) {
+            if (chan14 & drives[i].bit) {
+                c->counters[drives[i].counter] |= AGC_COUNT_DOWN;
+            }
+        }
+    }
+
     /* F06B, 1.6 kHz: TIME6 counts down, but only while channel 13 bit 16 says
      * the descent-throttle interrupt is armed. */
     if (edge_b(s, 6)) {

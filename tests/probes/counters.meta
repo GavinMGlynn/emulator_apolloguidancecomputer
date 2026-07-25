@@ -6,6 +6,9 @@
 # name  open-sentinel  close-sentinel  expected-window-MCTs ('?' = record only)
 measure LOOP_QUIET 0120 0121 ?
 measure LOOP_WITH_TIME6 0122 0123 ?
+measure LOOP_WITH_STORM 0124 0125 ?
 # A stolen cycle is a whole MCT, and stealing cannot be free.
 relation LOOP_QUIET LOOP_WITH_TIME6 b_longer_by_whole_mcts
+# And it scales: seven counters cost more than one.
+relation LOOP_WITH_TIME6 LOOP_WITH_STORM b_longer_by_whole_mcts
 dump 31:1

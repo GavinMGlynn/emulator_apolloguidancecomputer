@@ -69,7 +69,8 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       The `integrity` probe — 40 multiply/divide round trips return the same
       right answer quiet and under counter traffic, so a steal never splits an
       instruction (#40-41).
-      *Remaining:* a counter storm heavy enough to starve the program outright.
+      The `counters` probe also raises a full storm: six channel-14 drive
+      counters at 3.2 kHz cost a third of the machine (#44-45).
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
@@ -82,9 +83,14 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       ext/agcplusplus is not initialised.
       *Tail:* INDEX, the branches, the channel instructions and RESUME have no
       simple operand sweep and are not covered.
-- [ ] **Long-run state hashes** for each rope at fixed MCT counts, as the
-      identity harness for any future optimization.
-      *Verification:* the hash is stable across platforms and build types.
+- [x] **Long-run state hashes** for each rope at fixed MCT counts, as the
+      identity harness for any future optimization. `tools/hash_ropes.py`
+      hashes the whole of erasable memory, the register file and the counter
+      cells after 200 000 MCTs.
+      *Verified:* 9 ropes, byte-identical between `-O0` and `-O3 -flto`, as the
+      `rope_state_hashes` CTest. Skips cleanly when `roms/` is empty.
+      **Still to confirm on the other three CI platforms** — but note CI has no
+      ropes, so this one is developer-side only.
 - [x] **Build a runnable oracle.** `tools/oracle/build_oracle.sh` links the
       Block II core out of `ext/agcplusplus` with no sockets, DSKY or threads,
       and `ORACLE_TRACE=1` logs one line per timing pulse for a direct diff

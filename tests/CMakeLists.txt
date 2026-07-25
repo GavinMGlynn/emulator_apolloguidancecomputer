@@ -53,3 +53,19 @@ if(Python3_Interpreter_FOUND)
                      --quick)
     set_tests_properties(oracle_differential PROPERTIES TIMEOUT 600)
 endif()
+
+# The widest net in the project: the whole of erasable memory plus the register
+# file after 200,000 MCTs of real flight software, hashed. The probes check what
+# we thought to check; this notices a divergence anywhere in 2048 words, in
+# software far more intricate than anything we would write by hand. It is also
+# the identity harness any future optimization needs — "faster and
+# bit-identical" is only a claim if something would have noticed.
+#
+# Ropes are not committed (tools/build_ropes.sh rebuilds them from the Virtual
+# AGC submodule), so this skips cleanly when roms/ is empty and CI stays green.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME rope_state_hashes
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/hash_ropes.py
+                     --exe $<TARGET_FILE:agc_headless>)
+    set_tests_properties(rope_state_hashes PROPERTIES TIMEOUT 900)
+endif()
