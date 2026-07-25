@@ -66,8 +66,11 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       probe — taken/not-taken asymmetry, and both ones'-complement zeroes
       branching (#32-34). The `interrupts` probe — refusal while A holds
       overflow, with a control, and RESUME restoring the program (#35-37).
-      *Remaining:* a counter request landing mid-instruction rather than
-      between them; a counter storm starving the program outright.
+      The `integrity` probe — 40 multiply/divide round trips return the same
+      right answer quiet and under counter traffic, so a steal never splits an
+      instruction (#40-41).
+      *Remaining:* a counter storm heavy enough to starve the program outright;
+      oracle comparisons for instructions other than MP and DV.
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
@@ -75,9 +78,15 @@ This is what turns "cycle-correct by construction" into a checkable claim.
 - [ ] **Long-run state hashes** for each rope at fixed MCT counts, as the
       identity harness for any future optimization.
       *Verification:* the hash is stable across platforms and build types.
+- [x] **Build a runnable oracle.** `tools/oracle/build_oracle.sh` links the
+      Block II core out of `ext/agcplusplus` with no sockets, DSKY or threads,
+      and `ORACLE_TRACE=1` logs one line per timing pulse for a direct diff
+      against our `--trace`.
+      *Verified:* it found the divide defect in FINDINGS #40, and settled two of
+      the four open memo divergences (#10, #13).
 - [ ] **Instrument the gate-level oracle** (`ext/agc_simulation`) to settle the
-      four open rows in `tools/oracle/FINDINGS.md` (#9 DAS1 T10/T11, #10 DV
-      DVST placement, #11 MP3 T6/T12, #13 DV4 T3).
+      two rows still open in `tools/oracle/FINDINGS.md` (#9 DAS1 T10/T11,
+      #11 MP3 T6/T12).
       *Verification:* a captured pulse timeline per question, recorded in
       FINDINGS with the instrumentation reverted afterwards.
 

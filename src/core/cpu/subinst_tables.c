@@ -197,8 +197,7 @@ static const agc_pulse_row dv0_rows[] = {
 
 static const agc_pulse_row dv1_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T1 xx */
-    {  2, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL, AGC_P_DVST } },  /* T2 0x */
-    {  2, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 1x */
+    {  2, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 xx */
     {  3, 0x0, 0x0, { AGC_P_RU, AGC_P_WB, AGC_P_STAGE } },  /* T3 xx */
     {  4, 0x1, 0x0, { AGC_P_RL, AGC_P_WB } },  /* T4 x0 */
     {  4, 0x1, 0x1, { AGC_P_RL, AGC_P_WB, AGC_P_TSGN } },  /* T4 x1 */
@@ -217,27 +216,22 @@ static const agc_pulse_row dv1_rows[] = {
 
 static const agc_pulse_row dv3_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T1 xx */
-    {  2, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL, AGC_P_DVST } },  /* T2 0x */
-    {  2, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 1x */
+    {  2, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 xx */
     {  3, 0x0, 0x0, { AGC_P_RU, AGC_P_WB, AGC_P_STAGE } },  /* T3 xx */
     {  4, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T4 xx */
-    {  5, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T5 0x */
-    {  5, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T5 1x */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T5 xx */
     {  6, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T6 xx */
     {  7, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T7 xx */
-    {  8, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T8 0x */
-    {  8, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T8 1x */
+    {  8, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T8 xx */
     {  9, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T9 xx */
     { 10, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T10 xx */
-    { 11, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T11 0x */
-    { 11, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T11 1x */
+    { 11, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T11 xx */
     { 12, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T12 xx */
 };
 
 static const agc_pulse_row dv4_rows[] = {
     {  4, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T4 xx */
-    {  5, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WB, AGC_P_WA } },  /* T5 0x */
-    {  5, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WB, AGC_P_WA } },  /* T5 1x */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WB, AGC_P_WA } },  /* T5 xx */
     {  6, 0x0, 0x0, { AGC_P_RZ, AGC_P_TOV } },  /* T6 xx */
     {  7, 0x2, 0x2, { AGC_P_RC, AGC_P_WA } },  /* T7 1x */
     {  7, 0x3, 0x1, { AGC_P_RC, AGC_P_WA } },  /* T7 01 */
@@ -248,39 +242,31 @@ static const agc_pulse_row dv4_rows[] = {
 
 static const agc_pulse_row dv6_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T1 xx */
-    {  2, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL, AGC_P_DVST } },  /* T2 0x */
-    {  2, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 1x */
+    {  2, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 xx */
     {  3, 0x0, 0x0, { AGC_P_RU, AGC_P_WB, AGC_P_STAGE } },  /* T3 xx */
     {  4, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T4 xx */
-    {  5, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T5 0x */
-    {  5, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T5 1x */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T5 xx */
     {  6, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T6 xx */
     {  7, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T7 xx */
-    {  8, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T8 0x */
-    {  8, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T8 1x */
+    {  8, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T8 xx */
     {  9, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T9 xx */
     { 10, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T10 xx */
-    { 11, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T11 0x */
-    { 11, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T11 1x */
+    { 11, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T11 xx */
     { 12, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T12 xx */
 };
 
 static const agc_pulse_row dv7_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T1 xx */
-    {  2, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL, AGC_P_DVST } },  /* T2 0x */
-    {  2, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 1x */
+    {  2, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL, AGC_P_DVST } },  /* T2 xx */
     {  3, 0x0, 0x0, { AGC_P_RU, AGC_P_WB, AGC_P_STAGE } },  /* T3 xx */
     {  4, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T4 xx */
-    {  5, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T5 0x */
-    {  5, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T5 1x */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T5 xx */
     {  6, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T6 xx */
     {  7, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T7 xx */
-    {  8, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T8 0x */
-    {  8, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T8 1x */
+    {  8, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T8 xx */
     {  9, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T9 xx */
     { 10, 0x0, 0x0, { AGC_P_L2GD, AGC_P_RB, AGC_P_PIFL, AGC_P_WYD, AGC_P_A2X } },  /* T10 xx */
-    { 11, 0x2, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_WL } },  /* T11 0x */
-    { 11, 0x2, 0x2, { AGC_P_RG, AGC_P_TSGU, AGC_P_RB1F, AGC_P_WL } },  /* T11 1x */
+    { 11, 0x0, 0x0, { AGC_P_RG, AGC_P_TSGU, AGC_P_CLXC, AGC_P_RB1F, AGC_P_WL } },  /* T11 xx */
     { 12, 0x0, 0x0, { AGC_P_RU, AGC_P_WB } },  /* T12 xx */
 };
 

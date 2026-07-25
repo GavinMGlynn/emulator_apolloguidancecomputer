@@ -88,13 +88,32 @@ def extract_block(text: str, start: int) -> tuple[str, int]:
     raise ValueError("unbalanced braces")
 
 
+# Pulses that write the branch registers. A `switch (cpu.br)` positioned after
+# one of these in the same timepulse is testing the value that pulse just
+# produced — it is NOT a condition on the branch registers as they stood when
+# the timepulse began, and it must not be hoisted into a row condition.
+BR_WRITERS = {"tsgn", "tsgn2", "tsgu", "tmz", "tov", "tpzg", "tl15"}
+
+# Pulses that re-test the branch registers themselves, so they are safe to issue
+# unconditionally: each decides internally whether to act. This is what lets a
+# late conditional be flattened into the union of its arms.
+SELF_CONDITIONAL = {"clxc", "rb1f"}
+
+
 def eval_body(body: str, br: int) -> list[str]:
     """Walk a timepulse body for one BR value, returning the ordered pulse list.
 
     Handles pulse calls, `switch (cpu.br)` groups (which may appear mid-list, as
     they do in DV1 T2), and ignores `break`.
+
+    A branch switch that follows a BR-writing pulse is a *late* conditional: the
+    hardware evaluates it against the value just computed, whereas a row
+    condition is evaluated before the timepulse runs at all. Those are flattened
+    to the union of both arms, which is only sound because every pulse involved
+    re-tests the branch registers itself.
     """
     pulses: list[str] = []
+    br_written = False
     i = 0
     while i < len(body):
         m = re.compile(r"switch\s*\(\s*cpu\.br\s*\)").search(body, i)
@@ -112,11 +131,29 @@ def eval_body(body: str, br: int) -> list[str]:
             continue
         if m and (not call or m.start() < call.start()):
             block, end = extract_block(body, m.end())
-            for labels, stmts in split_top_level_cases(block):
-                values = {int(v.replace("0b", ""), 2) for v in labels}
-                if br in values:
-                    pulses += eval_body(stmts, br)
-                    break
+            arms = split_top_level_cases(block)
+            if br_written:
+                # Late conditional: emit the union of the arms, in body order,
+                # and let each pulse re-test BR for itself.
+                seen: list[str] = []
+                for _, stmts in arms:
+                    for p in eval_body(stmts, br):
+                        if p in seen:
+                            continue
+                        if p not in SELF_CONDITIONAL:
+                            raise SystemExit(
+                                f"late branch switch selects {p!r}, which does not "
+                                f"re-test BR itself; it cannot be flattened. Teach "
+                                f"the executor a mid-timepulse condition instead."
+                            )
+                        seen.append(p)
+                pulses += seen
+            else:
+                for labels, stmts in arms:
+                    values = {int(v.replace("0b", ""), 2) for v in labels}
+                    if br in values:
+                        pulses += eval_body(stmts, br)
+                        break
             i = end
             continue
         if not call:
@@ -124,6 +161,8 @@ def eval_body(body: str, br: int) -> list[str]:
         name = call.group(1)
         if name not in ("break",):
             pulses.append(name)
+            if name in BR_WRITERS:
+                br_written = True
         i = call.end()
     return pulses
 
