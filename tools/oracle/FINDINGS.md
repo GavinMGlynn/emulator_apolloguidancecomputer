@@ -102,3 +102,18 @@ overhead; extracodes include the MCT of the `EXTEND` in front of them.
 Measured by aiming every branch at the word immediately after it, so taken and
 not-taken share one measurement window and control flow is identical either
 way — the two cases differ only in the MCT count.
+
+## Interrupt discipline (the `interrupts` probe)
+
+| # | Observation | Reading |
+|---|---|---|
+| 35 | With overflow held in A, a pending T6RUPT is refused for **the entire 100-increment run** and taken at increment 100, the instant a `TS` resolves the overflow. The control — the identical loop with the identical interrupt source and a clean accumulator — takes it at increment **27**. | The hardware will not break into a program holding overflow, because A is not saved by the interrupt sequence and an overflowed A loses its overflow the moment it passes through erasable memory. The control is what makes this evidence: 100 on its own is equally consistent with an interrupt that merely arrived late. |
+| 36 | After the interrupt, the program goes on to complete all 110 of its increments. | RESUME reloaded Z from ZRUPT correctly. Had it not, the program would have resumed somewhere else and never reached its final count. |
+| 37 | ZRUPT and BRUPT both read `024100` after the run, and the handler's copies agree. | The interrupt sequence saved Z and B where RSM3 expects to find them. |
+
+## Harness lessons
+
+| # | Lesson | Cost |
+|---|---|---|
+| 38 | **A probe must stop itself.** The AGC has no halt, so a finished probe parks in a branch-to-itself — which is a pure transfer-of-control loop, which trips TC TRAP after ~10 ms, which GOJAMs, which re-runs the entire probe on top of its own results. The interrupt probe first reported a counter 122 times too large. | `regress.py` now refuses any probe with neither sentinels nor a `stop_at`. |
+| 39 | `--mct` **accumulates**. The frontend adds successive `--mct` values rather than replacing them, so a probe passing `flags --mct 4000` got 104 000. | `regress.py` rejects `--mct`, `--timepulses` and `--sentinel` in `flags` and provides `mct` and `stop_at` directives instead. |

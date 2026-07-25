@@ -62,6 +62,7 @@ correctness of *results* rests on unit tests rather than on MIT's suite.
 | Instruction-timing verification | Working | `timing` probe: 26 instructions asserted against the memo |
 | Counter-interference verification | Working | `counters` probe: 31 whole MCTs stolen, invariants asserted |
 | Branch asymmetry verification | Working | `branches` probe: 8 cases, taken 1 MCT vs not-taken 2, both zeroes |
+| Interrupt discipline verification | Working | `interrupts` probe: refusal on A overflow (with a control), RESUME |
 | Probes for the remaining emergent behaviour | **Partial** | See gaps |
 
 ## Software that runs
@@ -105,10 +106,10 @@ Each has a reason and a cost to close, and each is a named item in
 
 ## Known gaps that are not approximations
 
-- **Probe coverage is thin.** Instruction timing, counter interference and
-  branch asymmetry are covered. Not yet probed: an interrupt refused because A
-  holds overflow, RESUME restoring Z and BRUPT exactly, and a counter request
-  landing mid-instruction rather than between them.
+- **Probe coverage is thin.** Instruction timing, counter interference, branch
+  asymmetry and interrupt discipline are covered. Not yet probed: a counter
+  request landing mid-instruction rather than between them, and a counter storm
+  starving the program outright.
 - **The probes time from the harness, not from inside the machine.** The AGC has
   no software-readable fine-grained counter — its best is TIME6 at 53 MCTs per
   tick — so a probe signals moments and `--sentinel` records the emulated

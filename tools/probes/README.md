@@ -33,6 +33,18 @@ real hardware, and there is no real Block II AGC to run it on.
 | `timing` | The MCT cost of 26 instructions, each bracketed between two sentinel stores. **Asserted against AGC4 Memo #9**, not just against a golden: an instruction whose subinstruction chain is one MCT wrong fails here even if it computes the right answer. |
 | `counters` | That a counter request steals a whole MCT from a program that never asked for it — the mechanism behind the Apollo 11 1201/1202 alarms. Measures the same loop twice, once with TIME6 disarmed and once armed. |
 | `branches` | The only cost asymmetry in the instruction set: a taken BZF/BZMF fetches for itself and costs 1 MCT, one not taken buys an STD2 and costs 2. Also that *both* zeroes branch — ones' complement has +0 and -0, and a probe that only tested +0 would pass on a broken TMZ pulse. |
+| `interrupts` | That an interrupt is refused while the accumulator holds overflow, and that RESUME puts the program back exactly. A *value* probe: it asserts on what the machine computed, not on how long it took. |
+
+## Controls
+
+A probe that only shows the expected outcome usually has not shown anything.
+`interrupts` runs its experiment twice — once with overflow held in the
+accumulator, once with it clean — because a phase-1 result of "the handler ran
+at increment 100" is equally consistent with an interrupt that was refused for
+90 increments and one that simply arrived late. The control settles it: same
+loop, same interrupt source, clean accumulator, handler at increment 27.
+
+When a probe's claim is causal, give it a control.
 
 ## The measurement window
 
@@ -79,11 +91,26 @@ Write a generator in this directory using `asm.py`, emit a `.bin` and a `.meta`
 into `tests/probes/`, and bless the golden. The `.meta` directives are:
 
 ```
-flags    <headless flags>                    conditions the probe runs under
-measure  <name> <open> <close> <expected|?>  a window, in octal cells; '?' records
-relation <a> <b> b_longer_by_whole_mcts      an invariant between two windows
-dump     <octal-addr>[:len]                  erasable to include in the golden
+flags       <headless flags>                  conditions the probe runs under
+mct         <n>                               upper bound on the run
+stop_at     <octal-addr>                      stop once this cell goes non-zero
+measure     <name> <open> <close> <expected|?> a window in octal cells; '?' records
+relation    <a> <b> b_longer_by_whole_mcts    an invariant between two windows
+expect_mem  <name> <octal-addr> <octal-value> assert a computed result
+expect_mem_min <name> <addr> <value>          ... at least
+expect_mem_max <name> <addr> <value>          ... at most
+dump        <octal-addr>[:len]                erasable to include in the golden
 ```
+
+**Every probe needs sentinels or a `stop_at`**, and `regress.py` refuses to run
+one that has neither. The AGC has no halt, so a finished probe parks in a
+branch-to-itself — and a pure transfer-of-control loop trips the TC TRAP alarm
+after about 10 ms, restarting the machine and running the whole probe again on
+top of its own results. The interrupt probe did exactly that on its first run
+and reported a counter 122 times too large.
+
+Do not put `--mct` in `flags`: the frontend *adds* successive `--mct` values
+rather than replacing them. Use the `mct` directive.
 
 Prefer `measure` with a real expected value over `?`. A golden catches change; an
 expectation catches *being wrong*, which is the harder and more useful thing. Use

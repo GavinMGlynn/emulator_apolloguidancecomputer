@@ -41,7 +41,10 @@ class Probe:
         self.flags: list[str] = []
         self.measures: list[tuple[str, int, int, int | None]] = []
         self.relations: list[tuple[str, str, str]] = []
+        self.expects: list[tuple[str, int, int, str]] = []  # (name, addr, value, op)
         self.dumps: list[str] = []
+        self.stops: list[int] = []
+        self.mct = 100000
 
         for line in meta_path.read_text().splitlines():
             line = line.strip()
@@ -49,7 +52,16 @@ class Probe:
                 continue
             head, *rest = line.split()
             if head == "flags":
+                if any(f in ("--mct", "--timepulses", "--sentinel") for f in rest):
+                    raise SystemExit(
+                        f"{meta_path}: use the 'mct' and 'stop_at' directives, not "
+                        f"raw flags — --mct accumulates rather than replacing"
+                    )
                 self.flags += rest
+            elif head == "mct":
+                self.mct = int(rest[0])
+            elif head == "stop_at":
+                self.stops.append(int(rest[0], 8))
             elif head == "measure":
                 name, sa, sb, expect = rest
                 self.measures.append(
@@ -58,6 +70,13 @@ class Probe:
             elif head == "relation":
                 lhs, rhs, kind = rest
                 self.relations.append((lhs, rhs, kind))
+            elif head in ("expect_mem", "expect_mem_min", "expect_mem_max"):
+                name, addr, value = rest
+                op = {"expect_mem": "==",
+                      "expect_mem_min": ">=",
+                      "expect_mem_max": "<="}[head]
+                self.expects.append((name, int(addr, 8), int(value, 8), op))
+                self.dumps.append(f"{int(addr, 8):o}:1")
             elif head == "dump":
                 self.dumps += rest
             else:
@@ -67,10 +86,16 @@ class Probe:
         out: list[int] = []
         for _, sa, sb, _ in self.measures:
             out += [sa, sb]
-        return out
+        return out + self.stops
 
     def command(self, exe: str) -> list[str]:
-        cmd = [exe, "--rope", str(self.bin), "--mct", "100000"]
+        # `mct` is only an upper bound: the run stops as soon as every sentinel
+        # has fired. That matters for more than speed. The AGC has no halt, so a
+        # finished probe parks in a branch-to-itself — and a pure transfer-of-
+        # control loop trips the TC TRAP alarm after about 10 ms, restarting the
+        # machine and running the whole probe again on top of its own results.
+        # Every probe therefore needs either sentinels or a `stop_at`.
+        cmd = [exe, "--rope", str(self.bin), "--mct", str(self.mct)]
         cmd += self.flags
         for addr in self.sentinels():
             cmd += ["--sentinel", f"{addr:o}"]
@@ -94,6 +119,42 @@ def parse_sentinels(output: str) -> dict[int, int | None]:
             addr = int(parts[1], 8)
             seen[addr] = None if parts[2] == "never" else int(parts[3])
     return seen
+
+
+def parse_memory(output: str) -> dict[int, int]:
+    """E <octal addr> <octal value>, from --dump-mem."""
+    mem: dict[int, int] = {}
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[0] == "E":
+            mem[int(parts[1], 8)] = int(parts[2], 8)
+    return mem
+
+
+def check_expectations(probe: Probe, output: str, report: bool) -> list[str]:
+    """Assertions on what the machine computed, as opposed to how long it took.
+
+    `expect_mem_min` exists for claims of the form "at least this much happened
+    before X" — the interrupt-refusal probe needs it, because the exact number
+    of instructions that ran before the interrupt was finally taken depends on
+    scaler phase, while the *claim* is only that it was refused for the whole
+    time the accumulator held overflow.
+    """
+    failures: list[str] = []
+    mem = parse_memory(output)
+    for name, addr, want, op in probe.expects:
+        if addr not in mem:
+            failures.append(f"{probe.name}/{name}: cell {addr:04o} was not dumped")
+            continue
+        got = mem[addr]
+        ok = {"==": got == want, ">=": got >= want, "<=": got <= want}[op]
+        if not ok:
+            failures.append(
+                f"{probe.name}/{name}: cell {addr:04o} is {got:06o}, expected {op} {want:06o}"
+            )
+        elif report:
+            print(f"  {name:<24} {addr:04o} = {got:06o}   ({op} {want:06o})")
+    return failures
 
 
 def check_relations(probe: Probe, windows: dict[str, int], report: bool) -> list[str]:
@@ -156,7 +217,9 @@ def check_oracle(probe: Probe, output: str, report: bool) -> list[str]:
             )
         elif report:
             print(f"  {name:<14} {pulses:5d} pulses  ({shown})   matches the memo")
-    return failures + check_relations(probe, windows, report)
+    return (failures
+            + check_relations(probe, windows, report)
+            + check_expectations(probe, output, report))
 
 
 def main() -> int:
@@ -170,6 +233,13 @@ def main() -> int:
     if not metas:
         print(f"no probes in {PROBE_DIR}", file=sys.stderr)
         return 1
+
+    for meta in metas:
+        if not Probe(meta).sentinels():
+            print(f"{meta.name}: no sentinels and no stop_at — the probe would park "
+                  f"in a TC loop and restart itself on the TC TRAP alarm",
+                  file=sys.stderr)
+            return 1
 
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     failures: list[str] = []

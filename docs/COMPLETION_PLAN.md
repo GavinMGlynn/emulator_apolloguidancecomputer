@@ -64,10 +64,10 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       *Done:* the `counters` probe — a peripheral steals 31 whole MCTs from a
       program that never interacted with it (FINDINGS #31). The `branches`
       probe — taken/not-taken asymmetry, and both ones'-complement zeroes
-      branching (FINDINGS #32-34).
-      *Remaining:* an interrupt refused because A holds overflow; RESUME
-      restoring Z and BRUPT exactly; a counter request landing mid-instruction;
-      a counter storm starving the program outright.
+      branching (#32-34). The `interrupts` probe — refusal while A holds
+      overflow, with a control, and RESUME restoring the program (#35-37).
+      *Remaining:* a counter request landing mid-instruction rather than
+      between them; a counter storm starving the program outright.
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
