@@ -69,12 +69,19 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       The `integrity` probe — 40 multiply/divide round trips return the same
       right answer quiet and under counter traffic, so a steal never splits an
       instruction (#40-41).
-      *Remaining:* a counter storm heavy enough to starve the program outright;
-      oracle comparisons for instructions other than MP and DV.
+      *Remaining:* a counter storm heavy enough to starve the program outright.
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
       confirm on the other three CI platforms** once the workflow has run.
+- [x] **Differential-test the instruction set against the oracle.**
+      `tools/oracle/differential.py` sweeps operand values chosen for the
+      awkward cases and compares full 16-bit registers, not just memory.
+      *Verified:* 2496/2496 agree over 21 instructions (FINDINGS #42); a quick
+      sweep runs as the `oracle_differential` CTest, skipping cleanly when
+      ext/agcplusplus is not initialised.
+      *Tail:* INDEX, the branches, the channel instructions and RESUME have no
+      simple operand sweep and are not covered.
 - [ ] **Long-run state hashes** for each rope at fixed MCT counts, as the
       identity harness for any future optimization.
       *Verification:* the hash is stable across platforms and build types.

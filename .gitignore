@@ -35,6 +35,11 @@ compile_commands.json
 # Local Claude Code settings
 .claude/settings.local.json
 
+# The oracle host writes these wherever it is run from (upstream's own
+# behaviour; ext/ is not patched to change it).
+AGCPlusPlus.log
+log_IMU_*.csv
+
 # Python cache
 __pycache__/
 *.pyc

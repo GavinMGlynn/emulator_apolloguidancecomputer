@@ -74,6 +74,7 @@ on MIT's suite.
 | Interrupt discipline verification | Working | `interrupts` probe: refusal on A overflow (with a control), RESUME |
 | Mid-instruction integrity verification | Working | `integrity` probe: MP/DV round trips give the same right answer under counter traffic |
 | Runnable oracle | Working | `tools/oracle/build_oracle.sh`; pulse-by-pulse diff against ours |
+| Instruction-set differential test | Working | `oracle_differential` in CTest; 2496/2496 cases agree over 21 instructions |
 | Probes for the remaining emergent behaviour | **Partial** | See gaps |
 
 ## Software that runs
@@ -120,12 +121,11 @@ Each has a reason and a cost to close, and each is a named item in
 - **Probe coverage is thin.** Instruction timing, counter interference, branch
   asymmetry, interrupt discipline and mid-instruction integrity are covered.
   Not yet probed: a counter storm heavy enough to starve the program outright.
-- **Only divide has been checked against the oracle instruction-by-
-  instruction.** The `integrity` probe checks MP and DV results; nothing yet
-  compares, say, MSU or the double-precision instructions against
-  `tools/oracle`. Divide was wrong for the project's whole life until a probe
-  did arithmetic and looked at the answer (FINDINGS #40) — unit tests, timing
-  probes and five booting flight ropes all missed it.
+- **Instruction results are now differential-tested** against the oracle:
+  2496/2496 cases over 21 instructions, including both ones'-complement zeroes
+  and the range extremes (FINDINGS #42). What that does *not* cover is the
+  instructions with no simple operand sweep — INDEX, the branches, the channel
+  instructions, RESUME — and it compares against a model rather than hardware.
 - **The probes time from the harness, not from inside the machine.** The AGC has
   no software-readable fine-grained counter — its best is TIME6 at 53 MCTs per
   tick — so a probe signals moments and `--sentinel` records the emulated

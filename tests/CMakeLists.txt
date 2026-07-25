@@ -34,3 +34,22 @@ if(Python3_Interpreter_FOUND)
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/regress.py
                      --exe $<TARGET_FILE:agc_headless>)
 endif()
+
+# Differential test against the runnable oracle: same rope, same number of
+# timing pulses, compare registers and memory. This is what catches an
+# instruction that computes the wrong answer at exactly the right speed — the
+# failure mode that hid a broken divide behind green timing probes and five
+# booting flight ropes (tools/oracle/FINDINGS.md #40).
+#
+# It builds the oracle out of ext/agcplusplus on first use and skips cleanly
+# when that submodule is absent, so CI (which initialises only ext/unity) stays
+# green without it. The quick sweep runs here; the full one is ~2 minutes and is
+# run by hand.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME oracle_differential
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/oracle/differential.py
+                     --ours $<TARGET_FILE:agc_headless>
+                     --oracle ${CMAKE_BINARY_DIR}/oracle
+                     --quick)
+    set_tests_properties(oracle_differential PROPERTIES TIMEOUT 600)
+endif()

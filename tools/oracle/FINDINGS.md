@@ -183,3 +183,29 @@ Two things to know if you use it. It cannot tick the scaler — that drives the
 CDU, which spawns a thread it never joins, which is harmless in a program that
 runs forever and fatal in a short-lived host. And it is a *model*, not hardware:
 where it and the memo disagree, the gate-level references decide.
+
+## Differential testing the instruction set
+
+`tools/oracle/differential.py` runs every instruction against the oracle over a
+sweep of operand values chosen for the awkward cases — both zeroes, the largest
+positive, the largest negative, alternating bit patterns — and compares the full
+16-bit registers as well as the erasable cells touched.
+
+| # | Result |
+|---|---|
+| 42 | **2496 of 2496 cases agree**, across CA, CS, AD, SU, MASK, TS, XCH, LXCH, QXCH, INCR, ADS, AUG, DIM, MSU, CCS, MP, DV, DAS, DXCH, DCA and DCS. |
+
+It compares registers rather than only memory because bit 16 is the overflow
+bit, and anything routed through erasable memory on its way out loses it: an
+instruction leaving the wrong overflow state would look perfectly correct in a
+memory dump. The one normalisation applied is in the other direction — the
+oracle reads erasable through the destructive read, which duplicates the sign
+into bit 16, while we dump the raw cell, so the comparison masks to the 15 bits
+actually stored.
+
+This is the check that should have existed before FINDINGS #40. A quick sweep
+runs in CTest; the full one takes about two minutes and is run by hand.
+
+| # | Harness lesson |
+|---|---|
+| 43 | **The differential rope must be per-process.** A background full sweep overlapping another invocation shared one `build/differential.bin` and reported 403 phantom mismatches — including a confident "DCS 112/256", which passed 256/256 the moment it was run on its own. Each run now writes its own PID-suffixed rope and removes it at exit. Worth remembering the shape of it: a differential test that shares mutable state with itself will accuse the thing it is testing. |
