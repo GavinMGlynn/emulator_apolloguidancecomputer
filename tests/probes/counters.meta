@@ -7,5 +7,5 @@
 measure LOOP_QUIET 0120 0121 ?
 measure LOOP_WITH_TIME6 0122 0123 ?
 # A stolen cycle is a whole MCT, and stealing cannot be free.
-relation LOOP_QUIET LOOP_WITH_TIME6 costs_whole_mcts
+relation LOOP_QUIET LOOP_WITH_TIME6 b_longer_by_whole_mcts
 dump 31:1

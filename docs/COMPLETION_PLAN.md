@@ -62,11 +62,12 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       rather than merely frozen. FINDINGS #25-30.
 - [~] **Probes for the emergent behaviour** unit tests cannot reach.
       *Done:* the `counters` probe — a peripheral steals 31 whole MCTs from a
-      program that never interacted with it (FINDINGS #31).
+      program that never interacted with it (FINDINGS #31). The `branches`
+      probe — taken/not-taken asymmetry, and both ones'-complement zeroes
+      branching (FINDINGS #32-34).
       *Remaining:* an interrupt refused because A holds overflow; RESUME
       restoring Z and BRUPT exactly; a counter request landing mid-instruction;
-      the branch instructions' taken/not-taken asymmetry; a counter storm
-      starving the program outright.
+      a counter storm starving the program outright.
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to

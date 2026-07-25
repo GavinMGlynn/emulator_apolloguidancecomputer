@@ -32,6 +32,7 @@ real hardware, and there is no real Block II AGC to run it on.
 |---|---|
 | `timing` | The MCT cost of 26 instructions, each bracketed between two sentinel stores. **Asserted against AGC4 Memo #9**, not just against a golden: an instruction whose subinstruction chain is one MCT wrong fails here even if it computes the right answer. |
 | `counters` | That a counter request steals a whole MCT from a program that never asked for it — the mechanism behind the Apollo 11 1201/1202 alarms. Measures the same loop twice, once with TIME6 disarmed and once armed. |
+| `branches` | The only cost asymmetry in the instruction set: a taken BZF/BZMF fetches for itself and costs 1 MCT, one not taken buys an STD2 and costs 2. Also that *both* zeroes branch — ones' complement has +0 and -0, and a probe that only tested +0 would pass on a broken TMZ pulse. |
 
 ## The measurement window
 
@@ -78,10 +79,10 @@ Write a generator in this directory using `asm.py`, emit a `.bin` and a `.meta`
 into `tests/probes/`, and bless the golden. The `.meta` directives are:
 
 ```
-flags   <headless flags>                     conditions the probe runs under
-measure <name> <open> <close> <expected|?>   a window, in octal cells; '?' records
-relation <a> <b> costs_whole_mcts            an invariant between two windows
-dump    <octal-addr>[:len]                   erasable to include in the golden
+flags    <headless flags>                    conditions the probe runs under
+measure  <name> <open> <close> <expected|?>  a window, in octal cells; '?' records
+relation <a> <b> b_longer_by_whole_mcts      an invariant between two windows
+dump     <octal-addr>[:len]                  erasable to include in the golden
 ```
 
 Prefer `measure` with a real expected value over `?`. A golden catches change; an

@@ -90,3 +90,15 @@ overhead; extracodes include the MCT of the `EXTEND` in front of them.
 | # | Observation | Reading |
 |---|---|---|
 | 31 | The same 256-iteration CCS countdown loop takes 18 648 pulses with TIME6 disarmed and 19 020 with it armed: **372 pulses, exactly 31 whole MCTs, stolen** by a peripheral the program never interacted with. | This is the Apollo 11 1201/1202 mechanism, and it is emergent — priority control steals the cycles, nothing models "counter overhead". The count is consistent with TIME6's 1.6 kHz rate over an 18.6 ms window (≈ 30 ticks). The exact figure has no closed form, because the loop's own lengthening changes how many ticks fall inside it, so the probe asserts the invariants (stealing is not free; a stolen cycle is a *whole* MCT, T1 to T12) and lets the golden pin the number. |
+
+## Branch asymmetry (the `branches` probe)
+
+| # | Case | Measured | Reading |
+|---|---|---|---|
+| 32 | BZF / BZMF **taken** | **1 MCT** | The taken branch asserts NISQ and RAD in its own final subinstruction, so it fetches the next instruction for itself and no STD2 follows. |
+| 33 | BZF / BZMF **not taken** | **2 MCT** | Nothing fetched, so an STD2 follows. The only cost asymmetry in the Block II instruction set, and the kind of thing an instruction-level emulator can get wrong indefinitely without any test noticing. |
+| 34 | BZF branches on **both** zeroes: +0 (000000) and -0 (177777) | both taken, 1 MCT | Ones' complement has two zeroes that are numerically equal but not bit-equal. This is what the dedicated TMZ pulse is *for*, and a probe that only tested +0 would pass against a broken TMZ. BZMF likewise takes both zeroes and any negative. |
+
+Measured by aiming every branch at the word immediately after it, so taken and
+not-taken share one measurement window and control flow is identical either
+way — the two cases differ only in the MCT count.

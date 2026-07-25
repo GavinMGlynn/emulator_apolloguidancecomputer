@@ -97,27 +97,35 @@ def parse_sentinels(output: str) -> dict[int, int | None]:
 
 
 def check_relations(probe: Probe, windows: dict[str, int], report: bool) -> list[str]:
-    """Invariants between two measurements, for effects with no closed form."""
+    """Invariants between two measurements, for effects with no closed form.
+
+    `b_longer_by_whole_mcts` asserts that the second window exceeds the first by
+    a positive whole number of Memory Cycle Times. Everything the AGC's sequence
+    generator does costs whole MCTs — an involuntary counter sequence runs T1 to
+    T12 like any other, and a branch not taken buys a whole extra STD2 — so a
+    fractional difference means something is being spliced in at the wrong
+    granularity, and a zero difference means the effect is not being modelled.
+    """
     failures: list[str] = []
     for lhs, rhs, kind in probe.relations:
         if lhs not in windows or rhs not in windows:
             failures.append(f"{probe.name}: relation names an unknown measurement")
             continue
         delta = windows[rhs] - windows[lhs]
-        if kind == "costs_whole_mcts":
+        if kind == "b_longer_by_whole_mcts":
             if delta <= 0:
                 failures.append(
                     f"{probe.name}: {rhs} ({windows[rhs]} pulses) is not longer than "
-                    f"{lhs} ({windows[lhs]} pulses) — counter servicing appears free"
+                    f"{lhs} ({windows[lhs]} pulses) — the effect costs nothing"
                 )
             elif delta % MCT != 0:
                 failures.append(
                     f"{probe.name}: {rhs} - {lhs} is {delta} pulses, not a whole "
-                    f"number of MCTs — a stolen cycle must run T1 to T12"
+                    f"number of MCTs"
                 )
             elif report:
-                print(f"  {lhs} -> {rhs}: {delta} pulses lost to counter servicing "
-                      f"({delta // MCT} whole MCTs stolen)")
+                print(f"  {lhs} -> {rhs}: +{delta} pulses "
+                      f"({delta // MCT} whole MCT{'s' if delta // MCT != 1 else ''})")
         else:
             failures.append(f"{probe.name}: unknown relation {kind!r}")
     return failures

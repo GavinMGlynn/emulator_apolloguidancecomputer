@@ -154,7 +154,7 @@ def main() -> int:
         window = "?" if expect is None else str(expect)
         lines.append(f"measure {name} {sa:04o} {sb:04o} {window}")
     lines.append("# A stolen cycle is a whole MCT, and stealing cannot be free.")
-    lines.append("relation LOOP_QUIET LOOP_WITH_TIME6 costs_whole_mcts")
+    lines.append("relation LOOP_QUIET LOOP_WITH_TIME6 b_longer_by_whole_mcts")
     lines.append(f"dump {TIME6:o}:1")
     OUT_META.write_text("\n".join(lines) + "\n")
 
