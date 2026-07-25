@@ -7,22 +7,35 @@ Last updated: 2026-07-25.
 
 ## Accuracy claim
 
-Not yet earned. What can be said today:
+**Instruction timing is verified.** All 26 instructions the `timing` probe
+measures come out at exactly the MCT counts AGC4 Memo #9's sequence tables
+predict — checked as an assertion in CTest, not merely frozen in a golden. That
+includes divide, which had to be measured before it could be asserted: DVST
+lets a divide sub-sequence end at T3 instead of T12, so a divide is built from
+unequal segments, and the fact that it totals exactly 72 timing pulses was a
+result rather than an assumption.
+
+The rest of what can be said today:
 
 - The core is stepped **once per timing pulse** — 1.024 MHz, twelve pulses to
-  the 11.71875 µs MCT — and executes the control pulses that AGC4 Memo #9
-  assigns to each pulse of each subinstruction. There is no instruction-level
-  path through `src/core`.
+  the 11.71875 µs MCT — and executes the control pulses that the memo assigns
+  to each pulse of each subinstruction. There is no instruction-level path
+  through `src/core`.
 - All 57 Block II subinstructions are present, transcribed mechanically from
   the memo as corrected by `ext/agcplusplus` (`tools/gen_subinst_tables.py`,
   re-checked by CTest so the committed tables cannot drift).
-- Results are bit-identical between the `-O0` and `-O3 -flto` builds across
-  nine flight and test ropes run for 200 000 MCTs each.
+- Counter interference is verified as *emergent*: the `counters` probe measures
+  a peripheral stealing 31 whole MCTs from a program that never interacted with
+  it.
+- Results are bit-identical between the `-O0` and `-O3 -flto` builds — across
+  the probe goldens and across nine flight and test ropes run for 200 000 MCTs
+  each.
 
-What is **not** yet claimed: that any individual timing number has been checked
-against a self-measuring probe. There is no probe suite and no golden
-regression yet — that is the next phase, and until it exists "cycle-correct"
-describes the *construction* of the core, not a verified property of it.
+What is **not** yet claimed: instruction *timing* is checked, but the pulse-level
+interleaving within an MCT is not independently confirmed for the four
+sequences where we follow AGCPlusPlus over the memo (FINDINGS #9, #10, #11,
+#13), and no probe yet reads the Validation rope's own pass/fail verdict, so
+correctness of *results* rests on unit tests rather than on MIT's suite.
 
 ## Subsystems
 
@@ -45,7 +58,10 @@ describes the *construction* of the core, not a verified property of it.
 | Uplink / downlink / radar | **Missing** | — |
 | Headless frontend | Working | Used for every rope boot above |
 | SDL frontend | **Missing** | — |
-| Probe suite + golden regression | **Missing** | The next phase |
+| Probe framework (`tools/probes/asm.py`, sentinels, `regress.py`) | Working | `probe_regression` in CTest, both build types |
+| Instruction-timing verification | Working | `timing` probe: 26 instructions asserted against the memo |
+| Counter-interference verification | Working | `counters` probe: 31 whole MCTs stolen, invariants asserted |
+| Probes for the remaining emergent behaviour | **Partial** | See gaps |
 
 ## Software that runs
 
@@ -88,10 +104,16 @@ Each has a reason and a cost to close, and each is a named item in
 
 ## Known gaps that are not approximations
 
-- **No probe suite.** Every timing claim above is structural ("the table says
-  so"), not measured. Until self-measuring probes exist and their outputs are
-  locked in as goldens, a regression in a pulse sequence would only be caught
-  if it happened to break a unit test or alarm a rope.
+- **Probe coverage is thin.** Instruction timing and counter interference are
+  covered. Not yet probed: an interrupt refused because A holds overflow,
+  RESUME restoring Z and BRUPT exactly, a counter request landing mid-
+  instruction rather than between them, and the branch instructions'
+  taken/not-taken asymmetry.
+- **The probes time from the harness, not from inside the machine.** The AGC has
+  no software-readable fine-grained counter — its best is TIME6 at 53 MCTs per
+  tick — so a probe signals moments and `--sentinel` records the emulated
+  timing pulse. Exact and portable, but it means a probe could not be run
+  against real hardware. Reasoning in `tools/probes/README.md`.
 - **Aurora 12's RUPT LOCK is uncharacterised.** It may be correct behaviour for
   a development rope that never arms an interrupt source, or it may be the
   missing SHINC path. Characterise before fixing.

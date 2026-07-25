@@ -13,6 +13,12 @@
 *.bin
 *.agc.bin
 
+# Probe rope images are committed on purpose: they are tiny (a few dozen words
+# in a sparse image), they are the input half of the golden regression, and CI
+# must be able to run the probes without initialising a submodule or assembling
+# anything.
+!/tests/probes/*.bin
+
 # One reference is too big to commit comfortably: at 94 MB it is within a few
 # megabytes of GitHub's hard 100 MB per-file limit. tools/fetch_docs.sh
 # re-downloads it (and everything else under docs/references) on demand.

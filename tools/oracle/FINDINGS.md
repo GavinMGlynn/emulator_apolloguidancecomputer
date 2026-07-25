@@ -68,3 +68,25 @@ gate others within the same timing pulse:
 | 22 | Aurora 12 latches RUPT LOCK between 20 000 and 60 000 MCTs. | **Open.** Aurora 12 is a 1966 development rope and may legitimately idle without arming an interrupt source — but it may equally be starving on the serial-counter sequences we have not implemented. Not yet characterised; see the completion plan. |
 | 23 | Luminary 099's first four subinstructions after GOJAM are `TC0`, `STD2` (fetching `TC 4` = INHINT, with the inhibit flip-flop coming up set), `CA 04054`, `XCH 6006`. | Matches `GOPROG` in the Luminary 099 listing. The pseudo-code recognition in RAD — which decides INHINT/RELINT/EXTEND from the *address* during the fetch — is behaving. |
 | 24 | Debug (`-O0`) and release (`-O3 -flto`) builds produce byte-identical state dumps and full erasable dumps after 200 000 MCTs on all nine ropes. | Emulated results are timing-pulse counts, not measurements. This is the property that makes goldens portable; CI asserts it on four platforms. |
+
+## Measured against the memo (the `timing` probe)
+
+Twenty-six instructions bracketed between sentinel stores and checked against
+AGC4 Memo #9's sequence tables, not merely against a golden. All twenty-six
+agree. The instruction cost is the window minus the four MCTs of `CA` + `TS`
+overhead; extracodes include the MCT of the `EXTEND` in front of them.
+
+| # | Instructions | Measured | Reading |
+|---|---|---|---|
+| 25 | TC, TCF, INHINT, RELINT | **1 MCT** (60-pulse window) | These fetch for themselves: TC0/TCF0 assert NISQ and RAD in their own final subinstruction, so no STD2 follows. The pseudo-codes cost exactly the one extra STD2 that RAD's `RZ ST2` forces. |
+| 26 | CA, CS, AD, MASK, TS, XCH, LXCH, INCR, ADS, INDEX | **2 MCT** (72) | One subinstruction plus the STD2 that fetches the next instruction. INDEX is 2 because NDX1 carries NISQ, so the indexed instruction's own fetch is absorbed. |
+| 27 | DAS, DXCH, and (with EXTEND) SU, MSU, QXCH, AUG, DIM | **3 MCT** (84) | Two subinstructions plus STD2, or one plus STD2 plus the EXTEND. |
+| 28 | CCS *plus its branch* | **3 MCT** (84) | CCS itself is 2; the window necessarily includes the transfer out of one of its four branch words, because all four must be real instructions. Named `CCS_PLUS_TCF` in the probe so the figure is not mistaken for CCS alone. |
+| 29 | DCA, DCS, MP (each with EXTEND) | **4 MCT** (96) | DCA/DCS are 3 (two subinstructions + STD2); MP is 3 (MP0, MP1, MP3 — MP3 carries NISQ, so no STD2). |
+| 30 | DV (with EXTEND) | **7 MCT — exactly 84 pulses** (132-pulse window) | **The one worth checking.** DVST licenses a divide sub-sequence to end at T3 instead of T12, so a divide is assembled from unequal segments and there was no reason to assume the total landed on a whole MCT boundary. It does: 72 pulses for the divide itself, the documented 6 MCTs, to the pulse. Measured before it was asserted. |
+
+## Emergent behaviour (the `counters` probe)
+
+| # | Observation | Reading |
+|---|---|---|
+| 31 | The same 256-iteration CCS countdown loop takes 18 648 pulses with TIME6 disarmed and 19 020 with it armed: **372 pulses, exactly 31 whole MCTs, stolen** by a peripheral the program never interacted with. | This is the Apollo 11 1201/1202 mechanism, and it is emergent — priority control steals the cycles, nothing models "counter overhead". The count is consistent with TIME6's 1.6 kHz rate over an 18.6 ms window (≈ 30 ticks). The exact figure has no closed form, because the loop's own lengthening changes how many ticks fall inside it, so the probe asserts the invariants (stealing is not free; a stolen cycle is a *whole* MCT, T1 to T12) and lets the golden pin the number. |

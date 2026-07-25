@@ -26,6 +26,9 @@ static void usage(const char *argv0)
             "  --dump-mem A[:LEN]   dump LEN (default 1) erasable words from octal A\n"
             "  --dump-counters      print the counter cells and interrupt requests\n"
             "  --dump-channels      print every I/O channel\n"
+            "  --sentinel A         watch octal erasable cell A; report the MCT at\n"
+            "                       which it first becomes non-zero. Repeatable.\n"
+            "                       The run stops once every sentinel has fired.\n"
             "  --ignore-alarms      suppress the hardware alarms and their GOJAMs\n"
             "  --inhibit-alarm N    suppress one channel-77 alarm bit (octal mask)\n"
             "  --ignore-counters    never steal an MCT for a counter request\n"
@@ -36,10 +39,24 @@ static void usage(const char *argv0)
 }
 
 #define MAX_DUMPS 32
+#define MAX_SENTINELS 64
 
 struct dump {
     unsigned addr;
     unsigned len;
+};
+
+/* A probe signals "I have reached this point" by storing a non-zero word in an
+ * erasable cell. The AGC has no software-readable fine-grained cycle counter —
+ * its finest is TIME6 at 1.6 kHz, some 53 MCTs per tick — so a probe cannot
+ * time itself the way a machine with a cycle counter can. The harness times it
+ * instead: exact, deterministic, and identical on every host, because what is
+ * being recorded is an emulated timing-pulse count and not a measurement of
+ * anything on this computer. See tools/probes/README.md. */
+struct sentinel {
+    unsigned addr;
+    unsigned long long timepulse; /* 0 until it fires */
+    bool fired;
 };
 
 static bool parse_octal(const char *s, unsigned *out)
@@ -69,13 +86,16 @@ int main(int argc, char **argv)
     bool dump_counters = false, dump_channels = false;
     struct dump dumps[MAX_DUMPS];
     size_t dump_count = 0;
+    struct sentinel sentinels[MAX_SENTINELS];
+    size_t sentinel_count = 0;
 
     for (int i = 1; i < argc; ++i) {
         const char *a = argv[i];
         bool needs_value = strcmp(a, "--rope") == 0 || strcmp(a, "--rope-at") == 0
                            || strcmp(a, "--mct") == 0 || strcmp(a, "--timepulses") == 0
                            || strcmp(a, "--dump-mem") == 0
-                           || strcmp(a, "--inhibit-alarm") == 0;
+                           || strcmp(a, "--inhibit-alarm") == 0
+                           || strcmp(a, "--sentinel") == 0;
         if (needs_value && i + 1 >= argc) {
             fprintf(stderr, "%s needs a value\n", a);
             free(m);
@@ -100,6 +120,19 @@ int main(int argc, char **argv)
             dump_counters = true;
         } else if (strcmp(a, "--dump-channels") == 0) {
             dump_channels = true;
+        } else if (strcmp(a, "--sentinel") == 0) {
+            unsigned addr = 0;
+            if (sentinel_count == MAX_SENTINELS) {
+                fprintf(stderr, "too many --sentinel requests\n");
+                free(m);
+                return 2;
+            }
+            if (!parse_octal(argv[++i], &addr) || addr >= AGC_ERASABLE_WORDS) {
+                fprintf(stderr, "--sentinel wants an octal erasable address\n");
+                free(m);
+                return 2;
+            }
+            sentinels[sentinel_count++] = (struct sentinel){ addr, 0, false };
         } else if (strcmp(a, "--ignore-alarms") == 0) {
             m->ignore_alarms = true;
         } else if (strcmp(a, "--inhibit-alarm") == 0) {
@@ -179,11 +212,35 @@ int main(int argc, char **argv)
     }
 
     char line[256];
+    size_t fired = 0;
     for (unsigned long i = 0; i < pulses; ++i) {
         agc_tick(m);
         if (trace || (trace_mct && m->cpu.timepulse == 1)) {
             agc_format_state(m, line, sizeof line);
             printf("%s\n", line);
+        }
+        for (size_t s = 0; s < sentinel_count; ++s) {
+            if (!sentinels[s].fired && m->mem.erasable[sentinels[s].addr] != 0) {
+                sentinels[s].fired = true;
+                sentinels[s].timepulse = m->timepulses;
+                fired++;
+            }
+        }
+        /* --mct is an upper bound for a probe run, not the intent: stop as soon
+         * as the probe has said everything it was going to say, so a golden
+         * cannot accidentally depend on how long the parking loop ran. */
+        if (sentinel_count && fired == sentinel_count) {
+            break;
+        }
+    }
+
+    for (size_t s = 0; s < sentinel_count; ++s) {
+        if (sentinels[s].fired) {
+            printf("SENT %04o %llu %llu\n", sentinels[s].addr,
+                   sentinels[s].timepulse / AGC_TIMEPULSES_PER_MCT,
+                   sentinels[s].timepulse);
+        } else {
+            printf("SENT %04o never\n", sentinels[s].addr);
         }
     }
 

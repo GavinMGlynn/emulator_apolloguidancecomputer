@@ -60,7 +60,16 @@ modelled at all:
 | Erasable + fixed memory, parity, superbanks | working |
 | Scaler, timers, the three alarms | working |
 | Priority control: counters, interrupts | working (PINC/MINC/PCDU/MCDU/DINC) |
+| Probe suite + golden regression | working — 26 instruction timings asserted against the memo |
 | Serial counters (SHINC/SHANC), CDU, IMU, DSKY | **not yet** |
+
+Instruction timing is not just frozen in a golden, it is *checked against the
+memo*. All 26 instructions the timing probe measures come out at exactly the MCT
+counts AGC4 Memo #9's sequence tables predict — including divide, where DVST
+lets a sub-sequence end at T3 instead of T12, so the fact that a divide totals
+exactly 72 timing pulses was a result rather than an assumption. A separate
+probe measures a peripheral stealing 31 whole MCTs from a program that never
+interacted with it: the Apollo 11 1201/1202 mechanism, emergent.
 
 See `docs/PROJECT_STATUS.md` for what is verified and how, and
 `docs/COMPLETION_PLAN.md` for the road to done. Deliberate approximations are

@@ -45,31 +45,32 @@ spelled out.
 - [x] Deterministic headless frontend.
       *Verified:* nine ropes boot; debug and release dumps byte-identical.
 
-## Phase 2 — Verification (the crown jewel; next)
+## Phase 2 — Verification (in progress)
 
 This is what turns "cycle-correct by construction" into a checkable claim.
 
-- [ ] **Bare-metal probe framework.** A Python encoder in `tools/probes/`
-      emitting rope images directly — no toolchain — so a probe is a few dozen
-      hand-assembled words that make the machine measure itself: read TIME1/TIME2,
-      do the thing, store the delta at a fixed erasable address, write a
-      sentinel.
-      *Verification:* a probe measuring a known-length instruction returns the
-      MCT count the memo predicts.
-- [ ] **One probe per instruction class**, measuring subinstruction counts:
-      single-MCT (CA, AD, TS…), two-MCT (DAS, DXCH, DCA…), MP (3), DV (6),
-      the branch instructions' taken/not-taken asymmetry.
-      *Verification:* each measured count matches the memo's sequence tables.
-- [ ] **Probes for the emergent behaviour** unit tests cannot reach: a counter
-      request landing mid-instruction, a counter storm starving the program,
-      an interrupt refused because A holds overflow, RESUME restoring
-      Z/BRUPT exactly.
-      *Verification:* measured against the pulse tables and the gate-level
-      reference where the tables are silent.
-- [ ] **Golden regression.** `tools/regress.py` wired into CTest, running every
-      probe and diffing its result block against a checked-in golden.
-      *Verification:* goldens bit-identical on all four CI platforms and both
-      build types — they are timing-pulse counts, so anything else is a real bug.
+- [x] **Bare-metal probe framework.** `tools/probes/asm.py` is a ~200-line
+      Block II assembler emitting rope images directly, no toolchain involved.
+      A probe signals moments by storing into watched erasable cells;
+      `agc_headless --sentinel` records the emulated timing pulse.
+      *Verified:* `probe_regression` in CTest. The reason the harness times the
+      probe rather than the probe timing itself — the AGC has no fine-grained
+      software-readable counter — is written up in `tools/probes/README.md`.
+- [x] **Instruction timing measured against the memo.** The `timing` probe
+      brackets 26 instructions between sentinel stores.
+      *Verified:* every one matches AGC4 Memo #9's sequence tables, asserted
+      rather than merely frozen. FINDINGS #25-30.
+- [~] **Probes for the emergent behaviour** unit tests cannot reach.
+      *Done:* the `counters` probe — a peripheral steals 31 whole MCTs from a
+      program that never interacted with it (FINDINGS #31).
+      *Remaining:* an interrupt refused because A holds overflow; RESUME
+      restoring Z and BRUPT exactly; a counter request landing mid-instruction;
+      the branch instructions' taken/not-taken asymmetry; a counter storm
+      starving the program outright.
+- [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
+      probe and diffing its output against a checked-in golden.
+      *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
+      confirm on the other three CI platforms** once the workflow has run.
 - [ ] **Long-run state hashes** for each rope at fixed MCT counts, as the
       identity harness for any future optimization.
       *Verification:* the hash is stable across platforms and build types.
@@ -145,9 +146,12 @@ Explicitly deferred, listed so the plan names everything:
 
 Recorded as found, per the working conventions.
 
-- [ ] `agc_format_state` is the de facto golden format. It needs to be frozen
-      and documented before the first golden is checked in, or every future
-      field addition breaks the regression.
+- [x] `agc_format_state` is the de facto golden format. **Resolved differently:**
+      the probe goldens hold `SENT` lines and memory dumps, not the state line,
+      so a field added to the trace format does not break the regression.
+- [ ] `--sentinel` fires on "first non-zero", so a probe cannot mark a moment
+      with a zero value. Fine for every probe so far; document or widen it
+      before one needs to.
 - [ ] `AGC_CHANNEL_COUNT` is 64; the DSKY protocol uses fictitious channel 0163
       for lamp state. Decide whether that lives in the core or the frontend
       before the DSKY lands.
