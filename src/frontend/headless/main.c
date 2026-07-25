@@ -1,0 +1,226 @@
+/* Deterministic headless frontend.
+ *
+ * No wall clock, no host input, no threads: the only thing that advances time
+ * is --timepulses / --mct, and identical arguments produce identical output on
+ * every host and build type. This is the engine of the verification
+ * methodology — probe goldens are its stdout.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "agc.h"
+
+static void usage(const char *argv0)
+{
+    fprintf(stderr,
+            "usage: %s [options]\n"
+            "\n"
+            "  --rope PATH          load a `yaYUL --hardware` core rope image\n"
+            "  --rope-at BANK:PATH  load a rope-module dump at a bank offset\n"
+            "  --mct N              run N memory cycle times (12 timing pulses each)\n"
+            "  --timepulses N       run N timing pulses\n"
+            "  --trace              print machine state after every timing pulse\n"
+            "  --trace-mct          print machine state at the end of every MCT\n"
+            "  --dump-state         print machine state when the run ends\n"
+            "  --dump-mem A[:LEN]   dump LEN (default 1) erasable words from octal A\n"
+            "  --dump-counters      print the counter cells and interrupt requests\n"
+            "  --dump-channels      print every I/O channel\n"
+            "  --ignore-alarms      suppress the hardware alarms and their GOJAMs\n"
+            "  --inhibit-alarm N    suppress one channel-77 alarm bit (octal mask)\n"
+            "  --ignore-counters    never steal an MCT for a counter request\n"
+            "  --ignore-interrupts  never take a program interrupt\n"
+            "\n"
+            "--dump-mem may be given more than once; dumps happen after the run.\n",
+            argv0);
+}
+
+#define MAX_DUMPS 32
+
+struct dump {
+    unsigned addr;
+    unsigned len;
+};
+
+static bool parse_octal(const char *s, unsigned *out)
+{
+    char *end = NULL;
+    unsigned long v = strtoul(s, &end, 8);
+    if (end == s || *end != '\0') {
+        return false;
+    }
+    *out = (unsigned)v;
+    return true;
+}
+
+int main(int argc, char **argv)
+{
+    agc *m = calloc(1, sizeof *m);
+    if (!m) {
+        fprintf(stderr, "out of memory\n");
+        return 1;
+    }
+    agc_init(m);
+
+    const char *rope = NULL;
+    const char *rope_at = NULL;
+    unsigned long pulses = 0;
+    bool trace = false, trace_mct = false, dump_state = false;
+    bool dump_counters = false, dump_channels = false;
+    struct dump dumps[MAX_DUMPS];
+    size_t dump_count = 0;
+
+    for (int i = 1; i < argc; ++i) {
+        const char *a = argv[i];
+        bool needs_value = strcmp(a, "--rope") == 0 || strcmp(a, "--rope-at") == 0
+                           || strcmp(a, "--mct") == 0 || strcmp(a, "--timepulses") == 0
+                           || strcmp(a, "--dump-mem") == 0
+                           || strcmp(a, "--inhibit-alarm") == 0;
+        if (needs_value && i + 1 >= argc) {
+            fprintf(stderr, "%s needs a value\n", a);
+            free(m);
+            return 2;
+        }
+
+        if (strcmp(a, "--rope") == 0) {
+            rope = argv[++i];
+        } else if (strcmp(a, "--rope-at") == 0) {
+            rope_at = argv[++i];
+        } else if (strcmp(a, "--mct") == 0) {
+            pulses += strtoul(argv[++i], NULL, 0) * AGC_TIMEPULSES_PER_MCT;
+        } else if (strcmp(a, "--timepulses") == 0) {
+            pulses += strtoul(argv[++i], NULL, 0);
+        } else if (strcmp(a, "--trace") == 0) {
+            trace = true;
+        } else if (strcmp(a, "--trace-mct") == 0) {
+            trace_mct = true;
+        } else if (strcmp(a, "--dump-state") == 0) {
+            dump_state = true;
+        } else if (strcmp(a, "--dump-counters") == 0) {
+            dump_counters = true;
+        } else if (strcmp(a, "--dump-channels") == 0) {
+            dump_channels = true;
+        } else if (strcmp(a, "--ignore-alarms") == 0) {
+            m->ignore_alarms = true;
+        } else if (strcmp(a, "--inhibit-alarm") == 0) {
+            unsigned mask = 0;
+            if (!parse_octal(argv[++i], &mask)) {
+                fprintf(stderr, "--inhibit-alarm wants an octal mask\n");
+                free(m);
+                return 2;
+            }
+            m->alarm_inhibit = agc_w(m->alarm_inhibit | mask);
+        } else if (strcmp(a, "--ignore-counters") == 0) {
+            m->ignore_counters = true;
+        } else if (strcmp(a, "--ignore-interrupts") == 0) {
+            m->ignore_interrupts = true;
+        } else if (strcmp(a, "--dump-mem") == 0) {
+            if (dump_count == MAX_DUMPS) {
+                fprintf(stderr, "too many --dump-mem requests\n");
+                free(m);
+                return 2;
+            }
+            char spec[64];
+            snprintf(spec, sizeof spec, "%s", argv[++i]);
+            char *colon = strchr(spec, ':');
+            unsigned len = 1;
+            if (colon) {
+                *colon = '\0';
+                len = (unsigned)strtoul(colon + 1, NULL, 0);
+            }
+            unsigned addr = 0;
+            if (!parse_octal(spec, &addr)) {
+                fprintf(stderr, "--dump-mem address must be octal: %s\n", spec);
+                free(m);
+                return 2;
+            }
+            dumps[dump_count++] = (struct dump){ addr, len };
+        } else {
+            usage(argv[0]);
+            free(m);
+            return 2;
+        }
+    }
+
+    if (rope) {
+        long words = agc_load_rope(m, rope);
+        if (words < 0) {
+            fprintf(stderr, "cannot read rope %s\n", rope);
+            free(m);
+            return 1;
+        }
+        fprintf(stderr, "loaded %ld words from %s\n", words, rope);
+    }
+    if (rope_at) {
+        char spec[512];
+        snprintf(spec, sizeof spec, "%s", rope_at);
+        char *colon = strchr(spec, ':');
+        if (!colon) {
+            fprintf(stderr, "--rope-at wants BANK:PATH\n");
+            free(m);
+            return 2;
+        }
+        *colon = '\0';
+        unsigned bank = (unsigned)strtoul(spec, NULL, 0);
+        long words = agc_memory_load_rope_at(&m->mem, colon + 1, bank);
+        if (words < 0) {
+            fprintf(stderr, "cannot read rope module %s\n", colon + 1);
+            free(m);
+            return 1;
+        }
+        fprintf(stderr, "loaded %ld words at bank %u from %s\n", words, bank, colon + 1);
+    }
+
+    /* Loading the rope after agc_init means the power-on GOJAM has already run
+     * against empty fixed memory. Run it again so the first fetch sees the
+     * rope, exactly as a machine powered up with its ropes installed does. */
+    if (rope || rope_at) {
+        agc_cpu_start(m);
+    }
+
+    char line[256];
+    for (unsigned long i = 0; i < pulses; ++i) {
+        agc_tick(m);
+        if (trace || (trace_mct && m->cpu.timepulse == 1)) {
+            agc_format_state(m, line, sizeof line);
+            printf("%s\n", line);
+        }
+    }
+
+    if (dump_state) {
+        agc_format_state(m, line, sizeof line);
+        printf("%s\n", line);
+        printf("timepulses=%llu mct=%llu alarm=%d\n",
+               (unsigned long long)m->timepulses,
+               (unsigned long long)(m->timepulses / AGC_TIMEPULSES_PER_MCT),
+               m->alarm_latched);
+    }
+
+    for (size_t d = 0; d < dump_count; ++d) {
+        for (unsigned k = 0; k < dumps[d].len; ++k) {
+            unsigned addr = dumps[d].addr + k;
+            if (addr >= AGC_ERASABLE_WORDS) {
+                break;
+            }
+            printf("E %04o %06o\n", addr, m->mem.erasable[addr]);
+        }
+    }
+
+    if (dump_channels) {
+        for (unsigned n = 0; n < AGC_CHANNEL_COUNT; ++n) {
+            printf("CH %02o %06o\n", n, agc_cpu_read_channel(m, n));
+        }
+    }
+
+    if (dump_counters) {
+        for (unsigned i = 0; i < AGC_COUNTER_COUNT; ++i) {
+            printf("CNT %02o %u\n", i + AGC_COUNTER_BASE, m->cpu.counters[i]);
+        }
+        for (unsigned i = 0; i < AGC_RUPT_COUNT; ++i) {
+            printf("RUPT %u %d\n", i, m->cpu.interrupts[i]);
+        }
+    }
+
+    free(m);
+    return 0;
+}

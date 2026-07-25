@@ -1,0 +1,34 @@
+# Build trees (preset binaryDir = build/<preset>)
+/build/
+
+# User-supplied / downloaded media — never committed.
+# Core ropes and rope-module dumps are large and license-bound; see
+# docs/references/TEST_SOFTWARE.md for where each one comes from.
+# (glob the contents rather than the directory: git will not look inside an
+# excluded directory, so a negation for a file within one never matches)
+/roms/*
+/bios/*
+!/roms/README.md
+!/bios/README.md
+*.bin
+*.agc.bin
+
+# One reference is too big to commit comfortably: at 94 MB it is within a few
+# megabytes of GitHub's hard 100 MB per-file limit. tools/fetch_docs.sh
+# re-downloads it (and everything else under docs/references) on demand.
+/docs/references/agc-information-series/agcis_32_blk2_instructions.pdf
+
+# Editor / OS cruft
+.cache/
+compile_commands.json
+*.o
+*.a
+*.swp
+.DS_Store
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Python cache
+__pycache__/
+*.pyc

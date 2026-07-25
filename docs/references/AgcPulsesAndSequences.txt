@@ -1,0 +1,1006 @@
+Date:  Sat, 02 Oct 2004 15:59:42 -0400
+
+Hi guys,
+
+It looks like there's some interest in having a searchable and (best of all) readable version of pages 30-50 of the infamous AGC4 Memo #9, so I just retyped those pages in mixed case and with a few additional comments in [square brackets].  Please regard this as a "living document" and ask for additions, clarifications and/or whatever.
+
+Hugh
+
+
+
+Control Pulse Definitions
+-------------------------
+
+A2X     Copy A1-16 into X1-16 by private line.
+
+B15X    Set bit 15 of X to 1.
+
+CI      Insert carry into bit 1 of the adder.
+
+CLXC    Clear X conditional on the outcome of TSGU [Test sign of sum].
+        X is cleared if BR1 = 0.  Used in Divide.
+                                
+DVST    Cause Divide staging by a simple rule [Grey coding].
+        Also permit staging to occur at time 03 of Divide cycles.
+
+EXT     Set the EXTEND flip flop.
+
+G2LS *  Copy G4-15,16,1 into L1-12,16,15.  [See ZAP in Multiply.]
+
+KRPT    Reset interrupt priority cell.
+
+L16     Set bit 16 of L to 1.
+
+L2GD    Copy L1-14,16 into G2-15,16 -- Also MCRO into G1.
+
+MONEX   Set bits 2-16 of X to ones.
+
+MOUT    Negative rate output pulse.
+
+NEACOF  Permit end-around carry after end of MP3.
+
+NEACON  Inhibit end-around carry until NEACOF.
+
+NISQ    Next instruction is to be loaded into SQ.
+        Also frees certain restrictions --
+        permits increments and interrupts.
+                                
+PIFL    When L15 = 1, block writing into Y1 on a WYD.
+
+PONEX   Set bit 1 of X to 1.
+
+POUT    Positive rate output pulse.
+
+PTWOX   Set bit 2 of X to 1.
+
+R15     Place octal 000015 on WL's [Write Lines].
+
+R1C     Place octal 177776 = -1 on WL's.
+
+R6      Place octal 000006 on WL's.
+
+RA      Read A1-16 to WL1-16.
+
+RAD     Read address of next cycle.  This appears at the end
+        of an instruction and is normally interpreted as RG.
+        If the next instruction is to be a pseudo code
+        (INHINT, RELINT, or EXTEND), it is instead interpreted
+        as RZ ST2.
+                                
+RB      Read B1-16 to WL1-16.
+
+RB1     Place octal 000001 on the WL's.
+
+RB1F    Place octal 000001 on the WL's conditional on
+        the outcome of TSGU.  RB1 if BR1 = 1.
+                                
+RB2     Place octal 000002 on the WL's.
+
+RBBK    Read the BB (Both Bank) configuration onto the Write Lines,
+        i.e. EB9-11 to WL1-3 and FB11-14,16,16 to WL11-14,15,16.
+                                
+RC      Read the content of B inverted: C1-16 to WL1-16.
+
+RCH     Read the content of the input or output channel
+        specified by the current content of S:
+        Channel bits 1-14,16,16 to WL1-14,15,16.
+        Channels 1 and 2 read as RL and RQ.
+                                
+RG      Read G1-16 to WL1-16.
+
+RL      Read L1-14,16,16 to WL1-14,15,16.
+
+RL10BB  Read low 10 bits of B to WL1-10.
+
+RQ      Read Q1-16 to WL1-16.
+
+RRPA    Read the address of the highest priority interrupt
+        requested [if noee, place all zeros on the WL's].
+                                
+RSC     Read the content of the [special/]central store 
+        defined by the address [0000-0007] currently in S:
+        central store bits 1-16 are copied to WL1-16.
+                                
+RSCT    Read the address of the highest priority counter request.
+                                
+RSTRT   Place octal 000400 = BLOCK 2 start address on WL's.
+
+RSTSTG  Reset the Divide T03 staging condition.
+
+RU      Read U1-16 to WL1-16.
+
+RUS     Read U1-14,15,15 to WL1-14,15,16 [Uncorrected sum].
+
+RZ      Read Z1-16 to WL1-16.
+
+ST1     Set STAGE1 flip flop next T12.
+
+ST2     Set STAGE2 flip flop next T12.
+
+STAGE   Execute grey-coded stage advance computed by DVST.
+
+TL15    Copy L15 into BR1.
+
+TMZ     Test WL1-16 for all ones (-0).  Set BR2 if true.
+
+TOV     Test for + or - overflow.  Set BR1,2 to
+        00 if no overflow, 01 if + overflow, 10 if - overflow.
+        [I always say "- overflow", never the floating-point term
+        "underflow"]
+                                
+TPZG    Test content of G for plus zero.  If true set BR2 = 1.
+
+TRSM    Test for RESUME address on INDEX.  ST2 if (S) = [octal] 0017.
+
+TSGN    Test sign.  Copy WL16 to BR1.
+
+TSGN2   Test sign.  Copy WL16 to BR2.
+
+TSGU    Test sign of sum (U).  Copy U16 into BR1.
+
+U2BBK   Adder bits 1-3 and 11-14,15 are transferred into Erasable
+        and Fixed banks.  This pulse may be inhibited by CTS signal
+        MONWBK [Computer Test Set with its own copy of memory].
+                                
+WA      Clear and write WL1-16 into A1-16.
+
+WALS *  Clear and write into A1-14 from WL3-16.
+        Clear and write into L13,14 from WL1,2.
+        Clear and write into A15,16 from G16 (if G1 = 0)
+        or from WL16 (if G1 = 1).        [See ZAP in Multiply.]
+                                
+WB      Clear and write WL1-16 into B1-16.
+
+WCH     Clear and write WL1-14,16,Parity into channel bits 1-14,16,Parity.
+        channels 1 and 2 write as WL and WQ.  The channel to be loaded is
+        specified by the current content of S.
+                                
+WG      Clear and write WL1-16 into G1-16 except for addresses
+        octal 0020-0023, which cause editing [shifting].
+                                
+WL      Clear and write WL1-16 into L1-16.
+
+WOVR    Test for overflow during counter increments
+        and program-initiated increments (INCR and AUG).  
+        RUPT if overflow occurs when addressing certain counters.
+                                
+WQ      Clear and write WL1-16 into Q1-16.
+
+WS      Clear and write WL1-12 into S1-12.
+
+WSC     Clear and write WL1-16 into the [special/]central register specified
+        by the current contents of S.  Bits 1-16 into positions 1-16.
+                                
+WSQ  *  Clear and write WL10-14,16 into SQ10-14,16,
+        and copy the EXTEND flip flop into SQ15.
+                                
+WY      Clear Y and X.  Write WL1-16 into Y1-16.
+
+WY12    Clear Y and X.  Write WL1-12 into Y1-12.
+
+WYD     Clear Y and X.  Write WL1-14 into Y2-15.  Write WL16 into Y16.
+        Write WL16 into Y1 except:
+      	(1) When end-around carry is inhibited by NEACON,
+        (2) during SHINC sequence, or
+        (3) PIFL is active and L15 = 1.
+                                
+WZ      Clear and write WL1-16 into Z1-16.
+
+Z15     Set bit 15 of Z to 1.
+
+Z16     Set bit 16 of Z to 1.
+
+ZAP     Always implies RU, G2LS, and WALS.
+
+ZIP     Always implies A2X and L2GD.  Also if L15,2,1 ARE:
+
+        L15 L2 L1     Read Write Carry Remember
+         0   0  0     -    WY    -     -
+         0   0  1     RB   WY    -     -
+         0   1  0     RB   WYD   -     -
+         0   1  1     RC   WY    CI    MCRO
+         1   0  0     RB   WY    -     -
+         1   0  1     RB   WYD   -     -
+         1   1  0     RC   WY    CI    MCRO
+         1   1  1     -    WY    -     MCRO
+                                 
+ZOUT    No rate output pulse.  Reset outbit requesting DINC.
+
+     *  These pulses do not appear in the pulse sequences.
+
+Programmable Instructions
+-------------------------
+
+Op Code  EXT SQ16,14-13,12-11,10  Operation
+
+TC        0  000                Transfer Control [sets Q] and pseudo-codes *
+CCS       0  001 00             Count, Compare, and Skip
+TCF       0  001 01             Transfer Control to Fixed [doesn't set Q]
+TCF       0  001 10                 "       "    "    "      "      "  "
+TCF       0  001 11                 "       "    "    "      "      "  "
+DAS       0  010 00             Double precision Add to Storage
+LXCH      0  010 01             L eXCHange with memory
+INCR      0  010 10             INCRement memory
+ADS       0  010 11             ADd to Storage
+CA        0  011                Clear and Add
+CS        0  100                Clear and Subtract
+INDEX     0  101 00  [or NDX]   INDEX next instruction (INDEX 17 = RESUME)
+DXCH      0  101 01             Double precision eXCHange with memory
+TS        0  101 10             Transfer to Storage [with overflow check]
+XCH       0  101 11             eXCHange with memory
+AD        0  110                ADd
+MASK      0  111     [or MSK]   MASK ("AND" to A)
+
+READ      1  000 00 0           READ from channel
+WRITE     1  000 00 1           WRITE in channel
+RAND      1  000 01 0           Read, "AND" to A
+WAND      1  000 01 1           Write, "AND" to channel
+ROR       1  000 10 0           Read, "OR" to A
+WOR       1  000 10 1           Write, "OR" to channel
+RXOR      1  000 11 0           Read, eXclusive "OR" to A
+EDRUPT    1  000 11 1           ED Smally's own RUPT order
+
+DV        1  001 00             DiVide
+BZF       1  001 01             Branch on Zero to Fixed
+BZF       1  001 10               "    "   "   "    "
+BZF       1  001 11               "    "   "   "    "
+MSU       1  010 00             Modular SUbtract [2's complement]
+QXCH      1  010 01             Q eXCHange with memory
+AUG       1  010 10             AUGment memory
+DIM       1  010 11             DIMinish memory
+DCA       1  011                Double precision Clear and Add
+DCS       1  100                Double precision Clear and Subtract
+INDEX     1  101     [or NDX]   INDEX next extracode instruction
+SU        1  110 00             SUbtract
+BZMF      1  110 01             Branch on Zero or Minus to Fixed
+BZMF      1  110 10               "    "   "   "    "   "    "
+BZMF      1  110 11               "    "   "   "    "   "    "
+MP        1  111                MultiPly
+
+* Pseudo-codes: RELINT = TC 0003, INHINT = TC 0004, EXTEND = TC 0006.
+  The TC operation code is shared by the non-programmable sequences
+  GOJ1 (followed by TC0) and TCSAJ3 (followed by STD2).
+  [GOJ = GO Jam = reboot to 4000; TCSAJ = Transfer Control to Specified
+  Address Jam -- i.e., jump to address specified by Computer Test Set.]
+
+Pulse Sequences [page  1 of 16]
+
+
+TC0
+
+ 1. xx  RB     WY12   CI
+ 2. xx  RSC    WG     NISQ
+ 3. xx  RZ     WQ
+ 4. xx  RU     WZ
+ 8. xx  RAD    WB     WS
+ 
+GOJ1
+
+ 2. xx  RSC    WG
+ 8. xx  RSTSR  WS     WB
+ 
+TCSAJ3
+
+ 2. xx  RSC    WG
+ 8. xx  WS     WZ     ST2
+ 
+CCS0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WB     TSGN   TMZ    TPZG
+ 7. 00  RZ     WY12
+ 7. 01  RZ     WY12   PONEX
+ 7. 10  RZ     WY12             PTWOX
+ 7. 11  RZ     WY12   PONEX  PTWOX
+ 8. xx  RU     WZ     WS
+ 9. xx  RB     WG
+10. 00  RB     WY     MONEX  CI     ST2
+10. x1  WY     ST2
+10. 10  RC     WY     MONEX  CI     ST2
+11. xx  RU     WA
+
+TCF0
+
+ 1. xx  RB     WY12   CI
+ 2. xx  RSC    WG     NISQ
+ 6. xx  RU     WZ
+ 8. xx  RAD    WB     WS
+
+Pulse Sequences [page  2 of 16]
+
+
+DAS0
+
+ 1. xx  RL10BB WS     WY12   MONEX  CI
+ 2. xx  RSC    WG
+ 3. xx  RA     WB
+ 4. xx  RL     WA
+ 5. xx  RU     WL
+ 6. xx  RG     WY     A2X
+ 7. xx  RB     WA
+ 8. xx  RL     WB
+ 9. xx  RU     WSC    WG     TOV
+10. 00  RA     WY     ST1
+10. 01  RA     WY     ST1    PONEX
+10. 10  RA     WY     ST1    MONEX
+10. 11  RA     WY     ST1
+
+DAS1
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RU     WA
+ 5. xx  RG     WY     A2X
+ 6. xx  RU     WG     WSC    TOV
+ 7. 00  WA
+ 7. 01  WA     RB1
+ 7. 10  WA     R1C
+ 7. 11  WA
+ 8. xx  RZ     WS     ST2
+ 9. xx  RC     TMZ
+10. x0  WL
+10. x1  RU     WA
+
+LXCH0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RL     WB
+ 5. xx  RG     WL
+ 7. xx  RB     WSC    WG
+ 8. xx  RZ     WS     ST2
+ 
+INCR0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. xx  PONEX
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RZ     WS     ST2
+
+Pulse Sequences [page  3 of 16]
+
+
+ADS0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     A2X
+ 6. xx  RU     WSC    WG     TOV
+ 7. 00  WA                                 [no function; similar to DAS1]
+ 7. 01  WA     RB1                         [no function; similar to DAS1]
+ 7. 10  WA     R1C                         [no function; similar to DAS1]
+ 7. 11  WA                                 [no function; similar to DAS1]
+ 8. xx  RZ     WS     ST2
+ 9. xx  RC     TMZ                         [no function; similar to DAS1]
+11. xx  RU     WA
+
+CA0
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RB     WA 
+
+CS0
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RC     WA 
+
+Pulse Sequences [page  4 of 16]
+
+
+NDX0
+
+ 2. xx  RSC    WG
+ 5. xx  TRSM
+ 7. xx  RG     WB
+ 8. xx  RZ     WS
+ 9. xx  RB     WG
+10. xx  ST1
+
+NDX1
+
+ 1. xx  RZ     WY12   CI
+ 2. xx  RSC    WG     NISQ
+ 3. xx  RB     WZ
+ 4. xx  RA     WB
+ 5. xx  RZ     WA
+ 6. xx  RU     WZ
+ 7. xx  RG     WY     A2X
+ 8. xx  RU     WS
+ 9. xx  RB     WA
+10. xx  RU     WB
+
+RSM3
+
+ 1. xx  R15    WS
+ 2. xx  RSC    WG     NISQ
+ 5. xx  RG     WZ
+ 6. xx  RB     WG
+ 8. xx  RAD    WB     WS
+ 
+DXCH0
+
+ 1. xx  RL10BB WS     WY12   MONEX  CI
+ 2. xx  RSC    WG
+ 3. xx  RL     WB
+ 5. xx  RG     WL
+ 7. xx  RB     WSC    WG
+ 8. xx  RU     WS     WB
+10. xx  ST1
+
+DXCH1
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RA     WB
+ 5. xx  RG     WA
+ 7. xx  RB     WSC    WG
+ 8. xx  RZ     WS     ST2
+
+Pulse Sequences [page  5 of 16]
+
+
+TS0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RA     WB     TOV
+ 4. 00  RZ     WY12
+ 4. 01  RZ     WY12   CI
+ 4. 10  RZ     WY12   CI
+ 4. 11  RZ     WY12
+ 5. 01  RB1    WA
+ 5. 10  R1C    WA
+ 6. xx  RU     WZ
+ 7. xx  RB     WSC    WG
+ 8. xx  RZ     WS     ST2
+ 
+XCH0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RA     WB
+ 5. xx  RG     WA
+ 7. xx  RB     WSC    WG
+ 8. xx  RZ     WS     ST2
+ 
+AD0
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RB     WY     A2X
+11. xx  RU     WA
+
+MSK0
+
+ 2. xx  RSC    WG
+ 3. xx  RA     WB
+ 4. XX  RC     WA
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RC     RA     WY
+10. xx  RU     WB
+11. xx  RC     WA
+
+Pulse Sequences [page  6 of 16]
+
+
+READ0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  WY
+ 4. xx  RCH    WB
+ 5. xx  RB     WA
+ 6. xx  RA     WB
+ 8. xx  RZ     WS     ST2
+ 
+WRITE0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB     WG                   [WG may be a typo!]
+ 3. xx  WY
+ 4. xx  RCH    WB
+ 5. xx  RA     WCH
+ 6. xx  RA     WB
+ 8. xx  RZ     WS     ST2
+
+RAND0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  RC     WY
+ 4. xx  RCH    WB
+ 5. xx  RC     RU     WA
+ 6. xx  RA     WB
+ 7. xx  RC     WA
+ 8. xx  RZ     WS     ST2
+ 
+WAND0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  RC     WY
+ 4. xx  RCH    WB
+ 5. xx  RC     RU     WA
+ 6. xx  RA     WB
+ 7. xx  RC     WA     WCH
+ 8. xx  RZ     WS     ST2
+
+Pulse Sequences [page  7 of 16]
+
+
+ROR0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  RB     WY
+ 4. xx  RCH    WB
+ 5. xx  RB     RU     WA
+ 6. xx  RA     WB
+ 8. xx  RZ     WS     ST2
+ 
+WOR0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  RB     WY
+ 4. xx  RCH    WB
+ 5. xx  RA     RU     WA     WCH
+ 6. xx  RA     WB
+ 8. xx  RZ     WS     ST2
+
+RXOR0
+
+ 1. xx  RL10BB WS
+ 2. xx  RA     WB
+ 3. xx  RC     RCH    WY
+ 4. xx  RCH    WB
+ 5. xx  RA     RC     WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RC     WG
+10. xx  RU     WB
+11. xx  RC     RG     WA
+
+RUPT0
+
+ 1. xx  R15    WS
+ 2. xx  RSC    WG
+ 9. xx  RZ     WG
+10. xx  ST1
+
+RUPT1
+
+ 1. xx  R15    RB2    WS
+ 2. xx  RSC    WG
+ 3. xx  RRPA   WZ
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG     KRPT
+
+Pulse Sequences [page  8 of 16]
+
+
+DV0
+
+ 1. xx  RA     WB     TSGN
+ 2. 0x  RC     WA     TMZ    DVST
+ 2. 1x  DVST
+ 3. xx  RU     WB     STAGE
+ 
+DV1
+
+ 4. x0  RL     WB
+ 4. x1  RL     WB     TSGN
+ 5. 0x  RB     WY     B15X
+ 5. 1x  RC     WY     B15X   Z16
+ 6. xx  RU     WL     TOV
+ 7. xx  RG     RSC    WB     TSGN
+ 8. x0  RA     WY     PONEX
+ 8. x1  RA     WY
+ 9. 0x  RB     WA
+ 9. 1x  RC     WA     Z15
+10. xx  RU     WB
+11. xx  RL     WYD
+12. xx  RU     WL
+ 1. xx  L2GD   RB     WYD    A2X    PIFL
+ 2. 0x  RG     WL     TSGU   DVST   CLXC
+ 2. 1x  RG     WL     TSGU   DVST   RB1F
+ 3. xx  RU     WB     STAGE
+ 
+DV3
+
+ 4. xx  L2GD   RB     WYD    A2X    PIFL
+ 5. 0x  RG     WL     TSGU   DVST   CLXC
+ 5. 1x  RG     WL     TSGU   DVST   RB1F
+ 6. xx  RU     WB
+ 7. xx  L2GD   RB     WYD    A2X    PIFL
+ 8. 0x  RG     WL     TSGU   DVST   CLXC
+ 8. 1x  RG     WL     TSGU   DVST   RB1F
+ 9. xx  RU     WB
+10. xx  L2GD   RB     WYD    A2X    PIFL
+11. 0x  RG     WL     TSGU   DVST   CLXC
+11. 1x  RG     WL     TSGU   DVST   RB1F
+12. xx  RU     WB
+ 1. xx  L2GD   RB     WYD    A2X    PIFL
+ 2. 0x  RG     WL     TSGU   DVST   CLXC
+ 2. 1x  RG     WL     TSGU   DVST   RB1F
+ 3. xx  RU     WB     STAGE
+
+Pulse Sequences [page  9 of 16]
+
+ 
+DV7                                        [same as DV3]
+
+ 4. xx  L2GD   RB     WYD    A2X    PIFL
+ 5. 0x  RG     WL     TSGU   DVST   CLXC
+ 5. 1x  RG     WL     TSGU   DVST   RB1F
+ 6. xx  RU     WB
+ 7. xx  L2GD   RB     WYD    A2X    PIFL
+ 8. 0x  RG     WL     TSGU   DVST   CLXC
+ 8. 1x  RG     WL     TSGU   DVST   RB1F
+ 9. xx  RU     WB
+10. xx  L2GD   RB     WYD    A2X    PIFL
+11. 0x  RG     WL     TSGU   DVST   CLXC
+11. 1x  RG     WL     TSGU   DVST   RB1F
+12. xx  RU     WB
+ 1. xx  L2GD   RB     WYD    A2X    PIFL
+ 2. 0x  RG     WL     TSGU   DVST   CLXC
+ 2. 1x  RG     WL     TSGU   DVST   RB1F
+ 3. xx  RU     WB     STAGE
+ 
+DV6                                        [same as DV3]
+
+ 4. xx  L2GD   RB     WYD    A2X    PIFL
+ 5. 0x  RG     WL     TSGU   DVST   CLXC
+ 5. 1x  RG     WL     TSGU   DVST   RB1F
+ 6. xx  RU     WB
+ 7. xx  L2GD   RB     WYD    A2X    PIFL
+ 8. 0x  RG     WL     TSGU   DVST   CLXC
+ 8. 1x  RG     WL     TSGU   DVST   RB1F
+ 9. xx  RU     WB
+10. xx  L2GD   RB     WYD    A2X    PIFL
+11. 0x  RG     WL     TSGU   DVST   CLXC
+11. 1x  RG     WL     TSGU   DVST   RB1F
+12. xx  RU     WB
+ 1. xx  L2GD   RB     WYD    A2X    PIFL
+ 2. 0x  RG     WL     TSGU   DVST   CLXC
+ 2. 1x  RG     WL     TSGU   DVST   RB1F
+ 3. xx  RU     WB     STAGE
+
+DV4
+
+ 3. xx  RU     WB     STAGE
+ 4. xx  L2GD   RB     WYD    A2X    PIFL
+ 5. 0x  RG     WB     TSGU   WA     CLXC
+ 5. 1x  RG     WB     TSGU   WA     RB1F
+ 6. xx  RZ     TOV
+ 7. 01  RC     WA
+ 7. 1x  RC     WA
+ 8. xx  RZ     WS     ST2    TSGN   RSTSTG
+ 9. xx  RU     WB     WL
+10. 0x  RC     WL
+
+Pulse Sequences [page 10 of 16]
+
+ 
+BZF0
+
+ 1. xx  RA     WG     TSGN   TMZ
+ 2. xx  TPZG
+ 3. xx  RSC    WG
+ 5. x1  RB     WY12   CI
+ 6. x1  RU     WZ
+ 8. x0  RZ     WS     ST2
+ 8. x1  RAD    WB     WS     NISQ
+ 
+MSU0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WB
+ 6. xx  RC     WY     CI     A2X
+ 7. xx  RUS    WA     TSGN
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. 1x  RA     WY     MONEX
+11. xx  RUS    WA
+
+QXCH0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 3. xx  RQ     WB
+ 5. xx  RG     WQ
+ 7. xx  RB     WSC    WG
+ 8. xx  RZ     WS     ST2
+
+AUG0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. 0x  PONEX
+ 6. 1x  MONEX
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RZ     WS     ST2
+
+DIM0
+
+ 1. xx  RL10BB WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. 00  MONEX
+ 6. 10  PONEX
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RZ     WS     ST2
+
+Pulse Sequences [page 11 of 16]
+
+ 
+DCA0
+
+ 1. xx  RB     W12    MONEX  CI
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RU     WS
+ 9. xx  RB     WG
+10. xx  RB     WL     ST1
+
+DCA1
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RB     WA 
+
+DCS0
+
+ 1. xx  RB     W12    MONEX  CI
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RU     WS
+ 9. xx  RB     WG
+10. xx  RC     WL     ST1
+
+DCS1
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RC     WA 
+
+Pulse Sequences [page 12 of 16]
+
+ 
+NDXX0
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS
+ 9. xx  RB     WG
+10. xx  ST1
+
+NDX1
+
+ 1. xx  RZ     WY12   CI
+ 2. xx  RSC    WG     NISQ
+ 3. xx  RB     WZ
+ 4. xx  RA     WB
+ 5. xx  RZ     WA
+ 6. xx  RU     WZ
+ 7. xx  RG     WY     A2X
+ 8. xx  RU     WS
+ 9. xx  RB     WA
+10. xx  RU     WB     EXT
+
+SU0
+
+ 2. xx  RSC    WG
+ 7. xx  RG     WB
+ 8. xx  RZ     WS     ST2
+ 9. xx  RB     WG
+10. xx  RC     WY     A2X
+11. xx  RU     WA
+
+BZMF0
+
+ 1. xx  RA     WG     TSGN   TMZ
+ 2. xx  TPZG
+ 3. xx  RSC    WG
+ 5. 01  RB     WY12   CI
+ 5. 10  RB     WY12   CI
+ 5. 11  RB     WY12   CI
+ 6. 01  RU     WZ
+ 6. 10  RU     WZ
+ 6. 11  RU     WZ
+ 8. 00  RZ     WS     ST2
+ 8. 01  RAD    WB     WS     NISQ
+ 8. 10  RAD    WB     WS     NISQ
+ 8. 11  RAD    WB     WS     NISQ
+
+Pulse Sequences [page 13 of 16]
+
+ 
+MP0
+
+ 2. xx  RSC    WG
+ 3. xx  RA     WB     TSGN
+ 4. 0x  RB     WL
+ 4. 1x  RC     WL
+ 7. xx  RG     WB     TSGN2
+ 8. xx  RZ     WS
+ 9. 00  RB     WY
+ 9. 01  RB     WY     CI
+ 9. 10  RB     WY     CI
+ 9. 11  RB     WY
+10. xx  RU     WB     TSGN   ST1    NEACON
+11. 0x  WA
+11. 1x  WA     RB1    R1C    L16
+
+MP1
+
+ 1. xx  ZIP
+ 2. xx  ZAP
+ 3. xx  ZIP
+ 4. xx  ZAP
+ 5. xx  ZIP
+ 6. xx  ZAP
+ 7. xx  ZIP
+ 8. xx  ZAP
+ 9. xx  ZIP
+10. xx  ZAP    ST1    ST2
+11. xx  ZIP
+ 
+MP3
+ 
+ 1. xx  ZAP
+ 2. xx  ZIP    NISQ
+ 3. xx  ZAP
+ 4. xx  RSC    WG
+ 5. xx  RZ     WY12   CI
+ 6. xx  RU     WZ     TL15   NEACOF
+ 7. 1x  RB     WY     A2X
+ 8. xx  RAD    WB     WS
+ 9. xx  RA
+10. xx  RL
+11. 1x  RU     WA
+
+STD2
+
+ 1. xx  RZ     WY12   CI
+ 2. xx  RSC    WG     NISQ
+ 6. xx  RU     WZ
+ 8. xx  RAD    WB     WS
+
+Pulse Sequences [page 14 of 16]
+
+ 
+PINC
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. xx  PONEX
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RB     WS
+
+PCDU
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. xx  CI
+ 7. xx  RUS    WSC    WG     WOVR
+ 8. xx  RB     WS
+
+MINC
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. xx  MONEX
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RB     WS
+
+MCDU
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. xx  MONEX  CI
+ 7. xx  RUS    WSC    WG     WOVR
+ 8. xx  RB     WS
+
+DINC
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WY     TSGN   TMZ    TPZG
+ 6. 00  MONEX  POUT
+ 6. 10  PONEX  MOUT
+ 6. x1         ZOUT
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RB     WS
+
+Pulse Sequences [page 15 of 16]
+
+ 
+SHINC
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WYD    TSGN
+ 7. xx  RU     WSC    WG     WOVR
+ 8. xx  RB     WS
+
+SHANC
+
+ 1. xx  RSCT   WS
+ 2. xx  RSC    WG
+ 5. xx  RG     WYD    TSGN   CI
+ 7. xx  RUS    WSC    WG     WOVR
+ 8. xx  RB     WS
+
+INOTRD
+
+ 1. xx  WS
+ 2. xx  RSC    WG
+ 5. xx  RCH
+ 8. xx  RB     WS
+
+INOTLD
+
+ 1. xx  WS
+ 2. xx  RSC    WG
+ 5. xx  RCH
+ 7. xx  WCH
+ 8. xx  RB     WS
+
+Pulse Sequences [page 16 of 16]
+
+FETCH0
+ 
+ 1. xx  R6     WS
+ 2. xx  RSC    WG     WY     ST1
+ 4. xx  WSC
+ 8. xx  WS
+ 
+FETCH1
+
+ 2. xx  RSC    WG
+ 7. xx  RG
+ 8. xx  RB     WS     U2BBK
+10. xx  RBBK
+
+STORE0
+ 
+ 1. xx  R6     WS
+ 2. xx  RSC    WG     WY     ST1
+ 4. xx  WSC
+ 8. xx  WS
+ 
+STORE1
+
+ 2. xx  RSC    WG
+ 4. xx  WSC
+ 7. xx  RG
+ 8. xx  RB     WS     U2BBK
+ 9. xx  WG
+10. xx  RBBK
+
+
+Agc4m9cp.txt
+

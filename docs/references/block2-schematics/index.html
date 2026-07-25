@@ -1,0 +1,650 @@
+<html>
+
+<head>
+<title>APOLLO GUIDANCE COMPUTER (AGC) Schematics</title>
+</head>
+
+<body bgcolor="#C0C0C0">
+
+<p align="center"> <a
+href="http://klabs.org"><font color="#FFFFFF"><a href="../../../index.htm">
+<img
+src="../../../richcontent/MAPLDCon03/admin/old_logo.jpg" alt="NASA Office of Logic Design"
+width="183" height="125"></a></font></a></p>
+
+<h1 align="center"><font size="5">NASA Office of Logic Design</font></h1>
+
+<h1 align="center"><font size="4"><font face="Arial">A scientific study of the problems of
+digital engineering for space flight systems,<br>
+with a view to their practical solution.</font> </font></h1>
+
+<hr>
+
+<h1 align="center"><font face="Courier New" size="5">APOLLO GUIDANCE COMPUTER (AGC) Schematics</font></h1>
+<p align="center">
+&nbsp;</p>
+
+<blockquote>
+
+<p align="left"><font face="Courier New" size="2">The documents below, courtesy of <a href="../../../mapld04/invited/hall_bio.htm" style="text-decoration: none">Eldon C.
+    Hall</a>, are schematics for the Block II Apollo Guidance Computer.</font></p>
+<p align="left"><font face="Courier New" size="2">Please see related documents 
+on the <a href="../../history_docs/mit_docs/integrated_circuits_reliability.htm">
+<span style="text-decoration: none">AGC Integrated Circuits and Reliability 
+Page.</span></a>&nbsp; Detailed examination of the problems associated with the 
+packages can be found in those reports, along with die related issues.&nbsp; 
+Additionally, a partial
+<a href="../../../richcontent/Misc_Content/AGC_And_History/PartsAnalysis/PartsAnalysis.htm">
+<span style="text-decoration: none">analysis</span></a> of Apollo devices has 
+been conducted.&nbsp; The
+<a href="../scd/index.htm" style="text-decoration: none">AGC NOR Gate 
+Specifications</a> goes along with this page.&nbsp; Additional
+<a href="../../history_docs/mit_docs/index.htm">
+<span style="text-decoration: none">documents</span></a> related to and about 
+the AGC are also available.&nbsp; Additionally, the </font>
+<a href="../../../richcontent/Misc_Content/AGC_And_History/AGC_History.htm">
+<span style="text-decoration: none">Apollo Guidance Computer and Other Computer 
+History</span></a> will be of interest to readers of this page.</p>
+<p align="center">&nbsp;</p>
+<p align="center"><u><b><font face="Courier New" size="2">INDEX TO DRAWINGS</font></b></u></p>
+<div align="center">
+	<table border="0" width="55%">
+		<tr>
+			<td valign="top">
+			<ul>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INTERFACE_A25-A26">
+				<span style="text-decoration: none">INTERFACE A25-A26</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INTERFACE_A27-A29">
+				<span style="text-decoration: none">INTERFACE A27-A29</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INTERFACE_A30-A31">
+				<span style="text-decoration: none">INTERFACE A30-A31</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#CLOCK_OSCILLATOR"><span style="text-decoration: none">
+				CLOCK OSCILLATOR</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#POWER_SUPPLY"><span style="text-decoration: none">
+				POWER SUPPLY</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#DUAL_NOR_GATE"><span style="text-decoration: none">
+				DUAL NOR GATE</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#RESTART_MONITOR"><span style="text-decoration: none">
+				RESTART MONITOR</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#SCALER_MODULE"><span style="text-decoration: none">
+				SCALER MODULE</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#TIMER"><span style="text-decoration: none">TIMER</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#S_Q_REGISTER_AND_DECODING">
+				<span style="text-decoration: none">S Q REGISTER AND DECODING</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#STAGE_BRANCH_DECODING_MODULE">
+				<span style="text-decoration: none">STAGE BRANCH DECODING MODULE</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#CROSS_POINT_GENERATOR_NQI">
+				<span style="text-decoration: none">CROSS POINT GENERATOR NQI</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#CROSS_POINT_GENERATOR_II">
+				<span style="text-decoration: none">CROSS POINT GENERATOR II</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#SERVICE_GATES"><span style="text-decoration: none">
+				SERVICE GATES</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#COUNTER_CELL_1"><span style="text-decoration: none">
+				COUNTER CELL 1</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#COUNTER_CELL_II"><span style="text-decoration: none">
+				COUNTER CELL II</span></a></font></p></li>
+			</ul>
+			</td>
+			<td valign="top">
+			<ul>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#4_BIT_MODULE_A"><span style="text-decoration: none">4 
+				BIT MODULE (1 OF 4)</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#4_BIT_MODULE_B"><span style="text-decoration: none">4 
+				BIT MODULE </span></a><a href="#4_BIT_MODULE_A">
+				<span style="text-decoration: none">(2 OF 4)</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#4_BIT_MODULE_C"><span style="text-decoration: none">4 
+				BIT MODULE </span></a><a href="#4_BIT_MODULE_A">
+				<span style="text-decoration: none">(3 OF 4)</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#4_BIT_MODULE_D"><span style="text-decoration: none">4 
+				BIT MODULE </span></a><a href="#4_BIT_MODULE_A">
+				<span style="text-decoration: none">(4 OF 4)</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#PARITY_AND_S_REGISTER">
+				<span style="text-decoration: none">PARITY AND S REGISTER</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#ALARMS"><span style="text-decoration: none">ALARMS</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#MEMORY_TIMING_&_ADDRESSING">
+				<span style="text-decoration: none">MEMORY TIMING &amp; ADDRESSING</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#RUPT_SERVICE"><span style="text-decoration: none">RUPT 
+				SERVICE</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_I"><span style="text-decoration: none">INOUT I</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_II"><span style="text-decoration: none">INOUT II</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_III"><span style="text-decoration: none">INOUT 
+				III</span></a></font></p></li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_IV"><span style="text-decoration: none">INOUT IV</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_V"><span style="text-decoration: none">INOUT V</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_VI"><span style="text-decoration: none">INOUT VI</span></a></font></p>
+				</li>
+				<li>
+				<p align="left" style="margin-top: 0; margin-bottom: 0"><font face="Courier New" size="2">
+				<a href="#INOUT_VII"><span style="text-decoration: none">INOUT 
+				VII</span></a></font></p></li>
+			</ul>
+			</td>
+		</tr>
+	</table>
+</div>
+<p align="center"><a href="agc_schematics.zip">
+<span style="text-decoration: none">(.zip file)</span></a></p>
+
+</blockquote>
+
+<div align="center">
+	<table border="1" width="90%">
+		<tr>
+			<td width="291">&nbsp;</td>
+			<td align="center"><b><font face="Courier New">SHEET 1</font></b></td>
+			<td align="center"><b><font face="Courier New">SHEET 2</font></b></td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC AND FLOW 
+			DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="INTERFACE_A25-A26">INTERFACE A25-A26</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005928</font></b></td>
+			<td><a href="top_level/a25-a26-1.jpg">
+			<img border="2" src="top_level/a25-a26-1_small1.jpg" xthumbnail-orig-image="a25-a26-1.jpg" width="190" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC AND WIRING 
+			DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="INTERFACE_A27-A29">INTERFACE A27-A29</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005912</font></b></td>
+			<td><a href="top_level/a27-a29-1.jpg">
+			<img border="2" src="top_level/a27-a29-1_small.jpg" xthumbnail-orig-image="a27-a29-1.jpg" width="187" height="150"></a></td>
+			<td><a href="top_level/a27-a29-2.jpg">
+			<img border="2" src="top_level/a27-a29-2_small.jpg" xthumbnail-orig-image="a27-a29-2.jpg" width="188" height="150"></a></td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC</font></b></p>
+			<p align="center"><b><font face="Courier New">AGC POWER SUPPLY</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="INTERFACE_A30-A31">INTERFACE A30-A31</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005971</font></b></td>
+			<td><a href="top_level/a30-a31-1.jpg">
+			<img border="2" src="top_level/a30-a31-1_small.jpg" xthumbnail-orig-image="a30-a31-1.jpg" width="184" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="CLOCK_OSCILLATOR">CLOCK OSCILLATOR</a></font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. B7</font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005003</font></b></td>
+			<td><a href="top_level/b7-clock.jpg">
+			<img border="2" src="top_level/b7-clock_small.jpg" xthumbnail-orig-image="b7-clock.jpg" width="228" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="POWER_SUPPLY">POWER SUPPLY</a></font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. D7</font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005904</font></b></td>
+			<td><a href="top_level/d7-el_power.jpg">
+			<img border="2" src="top_level/d7-el_power_small.jpg" xthumbnail-orig-image="d7-el_power.jpg" width="228" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		</table>
+</div>
+<p align="center">
+&nbsp;</p>
+<p align="center">
+&nbsp;</p>
+<p align="center">
+&nbsp;</p>
+<p align="center">
+&nbsp;</p>
+<div align="center">
+	<table border="1" width="90%">
+		<tr>
+			<td width="291">&nbsp;</td>
+			<td align="center"><b><font face="Courier New">SHEET 1</font></b></td>
+			<td align="center"><b><font face="Courier New">SHEET 2</font></b></td>
+			<td>
+			<p align="center"><b><font face="Courier New">SHEET 3</font></b></td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">SCHEMATIC</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="DUAL_NOR_GATE">DUAL NOR GATE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005011</font></b></td>
+			<td><a href="logic/5011-1.jpg">
+			<img border="2" src="logic/5011-1_small.jpg" xthumbnail-orig-image="logic/5011-1.JPG" width="186" height="150"></a></td>
+			<td><a href="logic/5011-2.jpg">
+			<img border="2" src="logic/5011-2_small.jpg" xthumbnail-orig-image="logic/5011-2.JPG" width="186" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="RESTART_MONITOR">RESTART MONITOR</a></font></b></p>
+			<p align="center"><b><font face="Courier New">CHANNEL 77&nbsp;&nbsp; 
+			ALARM BOX</font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2003305</font></b></td>
+			<td><a href="logic/77.jpg">
+			<img border="2" src="logic/77_small.jpg" xthumbnail-orig-image="logic/77.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A1</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="SCALER_MODULE">SCALER MODULE</a></font></b><p align="center">
+			<b><font face="Courier New">DRAWING NO. 2005259</font></b></td>
+			<td><a href="logic/a01-1.jpg">
+			<img border="2" src="logic/a01-1_small.jpg" xthumbnail-orig-image="logic/A01-1.JPG" width="186" height="150"></a></td>
+			<td><a href="logic/a01-2.jpg">
+			<img border="2" src="logic/a01-2_small.jpg" xthumbnail-orig-image="logic/A01-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A2</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="TIMER">TIMER</a></font></b><p align="center">
+			<b><font face="Courier New">DRAWING NO. 2005260</font></b></td>
+			<td><a href="logic/a02-1.jpg">
+			<img border="2" src="logic/a02-1_small.jpg" xthumbnail-orig-image="logic/A02-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a02-2.jpg">
+			<img border="2" src="logic/a02-2_small.jpg" xthumbnail-orig-image="logic/A02-2.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a02-3.jpg">
+			<img border="2" src="logic/a02-3_small.jpg" xthumbnail-orig-image="logic/A02-3.JPG" width="188" height="150"></a></td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A3</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="S_Q_REGISTER_AND_DECODING">S Q REGISTER AND DECODING</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005251</font></b></td>
+			<td><a href="logic/a03-1.jpg">
+			<img border="2" src="logic/a03-1_small.jpg" xthumbnail-orig-image="logic/A03-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a03-2.jpg">
+			<img border="2" src="logic/a03-2_small.jpg" xthumbnail-orig-image="logic/A03-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A4</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="STAGE_BRANCH_DECODING_MODULE">STAGE BRANCH DECODING MODULE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005262</font></b></td>
+			<td><a href="logic/a04-1.jpg">
+			<img border="2" src="logic/a04-1_small.jpg" xthumbnail-orig-image="logic/A04-1.JPG" width="189" height="150"></a></td>
+			<td><a href="logic/a04-2.jpg">
+			<img border="2" src="logic/a04-2_small.jpg" xthumbnail-orig-image="logic/A04-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A5</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="CROSS_POINT_GENERATOR_NQI">CROSS POINT GENERATOR NQI</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005261</font></b></td>
+			<td><a href="logic/a05-1.jpg">
+			<img border="2" src="logic/a05-1_small.jpg" xthumbnail-orig-image="logic/A05-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a05-2.jpg">
+			<img border="2" src="logic/a05-2_small.jpg" xthumbnail-orig-image="logic/A05-2.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A6</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="CROSS_POINT_GENERATOR_II">CROSS POINT GENERATOR II</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005263</font></b></td>
+			<td><a href="logic/a06-1.jpg">
+			<img border="2" src="logic/a06-1_small.jpg" xthumbnail-orig-image="logic/A06-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a06-2.jpg">
+			<img border="2" src="logic/a06-2_small.jpg" xthumbnail-orig-image="logic/A06-2.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A7</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="SERVICE_GATES">SERVICE GATES</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005252</font></b></td>
+			<td><a href="logic/a07-1.jpg">
+			<img border="2" src="logic/a07-1_small.jpg" xthumbnail-orig-image="logic/A07-1.JPG" width="186" height="150"></a></td>
+			<td><a href="logic/a07-2.jpg">
+			<img border="2" src="logic/a07-2_small.jpg" xthumbnail-orig-image="logic/A07-2.JPG" width="185" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A8</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="4_BIT_MODULE_A">4 BIT MODULE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005255</font></b></td>
+			<td><a href="logic/a08-1.jpg">
+			<img border="2" src="logic/a08-1_small.jpg" xthumbnail-orig-image="logic/A08-1.JPG" width="186" height="150"></a></td>
+			<td><a href="logic/a08-2.jpg">
+			<img border="2" src="logic/a08-2_small.jpg" xthumbnail-orig-image="logic/A08-2.JPG" width="184" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A9</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="4_BIT_MODULE_B">4 BIT MODULE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005256</font></b></td>
+			<td><a href="logic/a09-1.jpg">
+			<img border="2" src="logic/a09-1_small.jpg" xthumbnail-orig-image="logic/A09-1.JPG" width="185" height="150"></a></td>
+			<td><a href="logic/a09-2.jpg">
+			<img border="2" src="logic/a09-2_small.jpg" xthumbnail-orig-image="logic/A09-2.JPG" width="186" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A10</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="4_BIT_MODULE_C">4 BIT MODULE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005257</font></b></td>
+			<td><a href="logic/a10-1.jpg">
+			<img border="2" src="logic/a10-1_small.jpg" xthumbnail-orig-image="logic/A10-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a10-2.jpg">
+			<img border="2" src="logic/a10-2_small.jpg" xthumbnail-orig-image="logic/A10-2.JPG" width="186" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A11</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="4_BIT_MODULE_D">4 BIT MODULE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005258</font></b></td>
+			<td><a href="logic/a11-1.jpg">
+			<img border="2" src="logic/a11-1_small.jpg" xthumbnail-orig-image="logic/A11-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a11-2.jpg">
+			<img border="2" src="logic/a11-2_small.jpg" xthumbnail-orig-image="logic/A11-2.JPG" width="187" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A12</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="PARITY_AND_S_REGISTER">PARITY AND S REGISTER</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005253</font></b></td>
+			<td><a href="logic/a12-1.jpg">
+			<img border="2" src="logic/a12-1_small.jpg" xthumbnail-orig-image="logic/A12-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a12-2.jpg">
+			<img border="2" src="logic/a12-2_small.jpg" xthumbnail-orig-image="logic/A12-2.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A13</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="ALARMS">
+			ALARMS</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005269</font></b></td>
+			<td><a href="logic/a13-1.jpg">
+			<img border="2" src="logic/a13-1_small.jpg" xthumbnail-orig-image="logic/A13-1.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A14</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="MEMORY_TIMING_&amp;_ADDRESSING">MEMORY TIMING &amp; ADDRESSING</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005264</font></b></td>
+			<td><a href="logic/a14-1.jpg">
+			<img border="2" src="logic/a14-1_small.jpg" xthumbnail-orig-image="logic/A14-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a14-2.jpg">
+			<img border="2" src="logic/a14-2_small.jpg" xthumbnail-orig-image="logic/A14-2.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A15</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="RUPT_SERVICE">RUPT SERVICE</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005265</font></b></td>
+			<td><a href="logic/a15-1.jpg">
+			<img border="2" src="logic/a15-1_small.jpg" xthumbnail-orig-image="logic/A15-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a15-2.jpg">
+			<img border="2" src="logic/a15-2_small.jpg" xthumbnail-orig-image="logic/A15-2.JPG" width="187" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A16</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_I">
+			INOUT I</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005266</font></b></td>
+			<td><a href="logic/a16-1.jpg">
+			<img border="2" src="logic/a16-1_small.jpg" xthumbnail-orig-image="logic/A16-1.JPG" width="189" height="150"></a></td>
+			<td><a href="logic/a16-2.jpg">
+			<img border="2" src="logic/a16-2_small.jpg" xthumbnail-orig-image="logic/A16-2.JPG" width="189" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A17</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_II">
+			INOUT II</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005267</font></b></td>
+			<td><a href="logic/a17-1.jpg">
+			<img border="2" src="logic/a17-1_small.jpg" xthumbnail-orig-image="logic/A17-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a17-2.jpg">
+			<img border="2" src="logic/a17-2_small.jpg" xthumbnail-orig-image="logic/A17-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A18</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_III">
+			INOUT III</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005268</font></b></td>
+			<td><a href="logic/a18-1.jpg">
+			<img border="2" src="logic/a18-1_small.jpg" xthumbnail-orig-image="logic/A18-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a18-2.jpg">
+			<img border="2" src="logic/a18-2_small.jpg" xthumbnail-orig-image="logic/A18-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A19</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_IV">
+			INOUT IV</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005270</font></b></td>
+			<td><a href="logic/a19-1.jpg">
+			<img border="2" src="logic/a19-1_small.jpg" xthumbnail-orig-image="logic/A19-1.JPG" width="189" height="150"></a></td>
+			<td><a href="logic/a19-2.jpg">
+			<img border="2" src="logic/a19-2_small.jpg" xthumbnail-orig-image="logic/A19-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A20</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="COUNTER_CELL_1">COUNTER CELL 1</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005254</font></b></td>
+			<td><a href="logic/a20-1.jpg">
+			<img border="2" src="logic/a20-1_small.jpg" xthumbnail-orig-image="logic/A20-1.JPG" width="186" height="150"></a></td>
+			<td><a href="logic/a20-2.jpg">
+			<img border="2" src="logic/a20-2_small.jpg" xthumbnail-orig-image="logic/A20-2.JPG" width="187" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A21</font></b></p>
+			<p align="center"><b><font face="Courier New">
+			<a name="COUNTER_CELL_II">COUNTER CELL II</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005250</font></b></td>
+			<td><a href="logic/a21-1.jpg">
+			<img border="2" src="logic/a21-1_small.jpg" xthumbnail-orig-image="logic/A21-1.JPG" width="187" height="150"></a></td>
+			<td><a href="logic/a21-2.jpg">
+			<img border="2" src="logic/a21-2_small.jpg" xthumbnail-orig-image="logic/A21-2.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a21-3.jpg">
+			<img border="2" src="logic/a21-3_small.jpg" xthumbnail-orig-image="logic/A21-3.JPG" width="188" height="150"></a></td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A22</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_V">
+			INOUT V</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005271</font></b></td>
+			<td><a href="logic/a22-1.jpg">
+			<img border="2" src="logic/a22-1_small.jpg" xthumbnail-orig-image="logic/A22-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a22-2.jpg">
+			<img border="2" src="logic/a22-2_small.jpg" xthumbnail-orig-image="logic/A22-2.JPG" width="186" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A23</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_VI">
+			INOUT VI</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005272</font></b></td>
+			<td><a href="logic/a23-1.jpg">
+			<img border="2" src="logic/a23-1_small.jpg" xthumbnail-orig-image="logic/A23-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a23-2.jpg">
+			<img border="2" src="logic/a23-2_small.jpg" xthumbnail-orig-image="logic/A23-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td width="291">
+			<p align="center"><b><font face="Courier New">LOGIC FLOW DIAGRAM</font></b></p>
+			<p align="center"><b><font face="Courier New">MODULE NO. A24</font></b></p>
+			<p align="center"><b><font face="Courier New"><a name="INOUT_VII">
+			INOUT VII</a></font></b></p>
+			<p align="center"><b><font face="Courier New">DRAWING NO. 2005273</font></b></td>
+			<td><a href="logic/a24-1.jpg">
+			<img border="2" src="logic/a24-1_small.jpg" xthumbnail-orig-image="logic/A24-1.JPG" width="188" height="150"></a></td>
+			<td><a href="logic/a24-2.jpg">
+			<img border="2" src="logic/a24-2_small.jpg" xthumbnail-orig-image="logic/A24-2.JPG" width="188" height="150"></a></td>
+			<td>&nbsp;</td>
+		</tr>
+	</table>
+</div>
+<p align="center">
+<a href="../../../richcontent/Misc_Content/AGC_And_History/AGC_History.htm">
+<span style="text-decoration: none">Apollo Guidance Computer and Other Computer 
+History</span></a></p>
+
+<hr>
+
+<p align="center"><font face="Courier New"><a href="../../../index.htm" style="text-decoration: none">
+<font size="2">Home - NASA Office of Logic Design</font></a><font size="2"><br>
+Last Revised: 
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%B %d, %Y" startspan -->February 03, 2010<!--webbot bot="Timestamp" i-checksum="41524" endspan --><br>
+Web Grunt: 
+</font> 
+<a href="mailto:richard.b.katz@nasa.gov" style="text-decoration: none">
+<font size="2">Richard Katz</font></a></font><br>
+<a href="../../../home_page/images/GPN-2000-001838_naca_seal.jpg">
+<img border="2"
+src="../../../home_page/images/GPN-2000-001838_naca_seal_small.jpg"
+xthumbnail-orig-image="../../../home_page/images/GPN-2000-001838_naca_seal.jpg" width="88" height="70"
+alt="NACA Seal"></a></p>
+</body>
+</html>

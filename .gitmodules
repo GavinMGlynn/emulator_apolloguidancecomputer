@@ -1,0 +1,12 @@
+[submodule "ext/unity"]
+	path = ext/unity
+	url = https://github.com/ThrowTheSwitch/Unity.git
+[submodule "ext/agcplusplus"]
+	path = ext/agcplusplus
+	url = https://github.com/CaptainSwag101/AGCPlusPlus.git
+[submodule "ext/agc_simulation"]
+	path = ext/agc_simulation
+	url = https://github.com/virtualagc/agc_simulation.git
+[submodule "ext/virtualagc"]
+	path = ext/virtualagc
+	url = https://github.com/virtualagc/virtualagc.git
