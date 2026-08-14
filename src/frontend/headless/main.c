@@ -40,9 +40,12 @@ static void usage(const char *argv0)
             "                       on. This is how the Validation suite is run:\n"
             "                       it stops at every checkpoint and at every\n"
             "                       failure, and PROG 77 means it finished.\n"
-            "  --sentinel A         watch octal erasable cell A; report the MCT at\n"
-            "                       which it first becomes non-zero. Repeatable.\n"
-            "                       The run stops once every sentinel has fired.\n"
+            "  --sentinel A[=V]     watch octal erasable cell A; report the MCT at\n"
+            "                       which it first becomes non-zero, or with =V\n"
+            "                       the MCT at which it first *changes to* octal\n"
+            "                       V. The =V form is the one that can mark a\n"
+            "                       moment whose value is zero. Repeatable; the\n"
+            "                       run stops once every sentinel has fired.\n"
             "  --ignore-alarms      suppress the hardware alarms and their GOJAMs\n"
             "  --inhibit-alarm N    suppress one channel-77 alarm bit (octal mask)\n"
             "  --ignore-counters    never steal an MCT for a counter request\n"
@@ -115,6 +118,9 @@ struct dump {
  * anything on this computer. See tools/probes/README.md. */
 struct sentinel {
     unsigned addr;
+    unsigned value;   /* the value waited for, when want_value */
+    bool want_value;  /* --sentinel A=V rather than the bare --sentinel A */
+    unsigned prev;    /* last value seen, so =V can fire on the edge into V */
     unsigned long long timepulse; /* 0 until it fires */
     bool fired;
 };
@@ -229,12 +235,36 @@ int main(int argc, char **argv)
                 free(m);
                 return 2;
             }
-            if (!parse_octal(argv[++i], &addr) || addr >= AGC_ERASABLE_WORDS) {
+            /* A[=V]: the value is optional and, unlike the bare form, may be
+             * zero — which is the whole reason it exists. */
+            const char *arg = argv[++i];
+            const char *eq = arg ? strchr(arg, '=') : NULL;
+            char cell[32];
+            unsigned value = 0;
+            if (eq) {
+                size_t n = (size_t)(eq - arg);
+                if (n >= sizeof cell) {
+                    fprintf(stderr, "--sentinel address is far too long\n");
+                    free(m);
+                    return 2;
+                }
+                memcpy(cell, arg, n);
+                cell[n] = '\0';
+                if (!parse_octal(eq + 1, &value) || value > AGC_WORD_MASK) {
+                    fprintf(stderr, "--sentinel wants an octal value after =\n");
+                    free(m);
+                    return 2;
+                }
+            }
+            if (!parse_octal(eq ? cell : arg, &addr)
+                || addr >= AGC_ERASABLE_WORDS) {
                 fprintf(stderr, "--sentinel wants an octal erasable address\n");
                 free(m);
                 return 2;
             }
-            sentinels[sentinel_count++] = (struct sentinel){ addr, 0, false };
+            sentinels[sentinel_count++] = (struct sentinel){
+                addr, value, eq != NULL, 0, 0, false
+            };
         } else if (strcmp(a, "--ignore-alarms") == 0) {
             m->ignore_alarms = true;
         } else if (strcmp(a, "--inhibit-alarm") == 0) {
@@ -319,6 +349,12 @@ int main(int argc, char **argv)
     unsigned pro_settle = 0, pro_hold = 0;
     unsigned long long stops = 0;
     size_t fired = 0;
+    /* Seed the edge detector from the state the run actually starts in, so a
+     * cell that already holds the value being waited for does not count as
+     * having just become it. */
+    for (size_t s = 0; s < sentinel_count; ++s) {
+        sentinels[s].prev = m->mem.erasable[sentinels[s].addr];
+    }
     for (unsigned long i = 0; i < pulses; ++i) {
         for (size_t k = 0; k < press_count; ++k) {
             if (!presses[k].done
@@ -382,11 +418,22 @@ int main(int argc, char **argv)
             printf("%s\n", line);
         }
         for (size_t s = 0; s < sentinel_count; ++s) {
-            if (!sentinels[s].fired && m->mem.erasable[sentinels[s].addr] != 0) {
-                sentinels[s].fired = true;
-                sentinels[s].timepulse = m->timepulses;
-                fired++;
+            struct sentinel *sn = &sentinels[s];
+            const unsigned v = m->mem.erasable[sn->addr];
+            if (!sn->fired) {
+                /* The bare form asks "when did anything land here", which a zero
+                 * cannot answer. The =V form asks "when did it become V", and
+                 * so must watch the edge rather than the level — otherwise =0
+                 * would fire at once against cleared erasable and mean nothing. */
+                const bool hit = sn->want_value ? (v == sn->value && sn->prev != v)
+                                                : (v != 0);
+                if (hit) {
+                    sn->fired = true;
+                    sn->timepulse = m->timepulses;
+                    fired++;
+                }
             }
+            sn->prev = v;
         }
         /* --mct is an upper bound for a probe run, not the intent: stop as soon
          * as the probe has said everything it was going to say, so a golden

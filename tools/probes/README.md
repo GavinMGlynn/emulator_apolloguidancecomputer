@@ -20,6 +20,15 @@ So the split here is:
   word in a watched cell; `agc_headless --sentinel` records the emulated
   timing-pulse count at which that happened.
 
+There are two forms, and the difference matters when the interesting value is
+zero. `--sentinel A` fires the first time cell A holds anything other than zero,
+which suits a probe that drops a marker into cleared erasable. `--sentinel A=V`
+fires when A *changes to* V, which is the only form that can name a moment whose
+value is zero — a counter arriving, a flag coming down. It watches the edge
+rather than the level on purpose: `=0` against the level would fire at once on
+erasable that was already zero and mean nothing. `tools/test_sentinel.py` is the
+check, run by the `sentinel_forms` test.
+
 Nothing is lost by this. The recorded number is an *emulated* timing-pulse
 count, not a measurement of the host, so it is exact, deterministic, and
 identical on every platform and build type — the same property that makes the

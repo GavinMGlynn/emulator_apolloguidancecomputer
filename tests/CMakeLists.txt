@@ -53,6 +53,14 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME probe_regression
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/regress.py
                      --exe $<TARGET_FILE:agc_headless>)
+
+    # The instrument the probes are read with, checked against a rope built to
+    # need both of its forms: a cell written non-zero and then cleared. The
+    # clear is the moment `--sentinel A` cannot see, because the value it lands
+    # on is the one that means "nothing has happened yet".
+    add_test(NAME sentinel_forms
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/test_sentinel.py
+                     --exe $<TARGET_FILE:agc_headless>)
 endif()
 
 # The third opinion on the pulse tables, and the only one that is hardware

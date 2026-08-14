@@ -335,9 +335,15 @@ Recorded as found, per the working conventions.
 - [x] **No CI job used gcc** — every one was clang or MSVC, including the Rocky
       container. `-Wconversion` under gcc had three unseen errors waiting in
       `tests/imu_suite.c`. Resolved with a `linux-gcc` preset and job.
-- [ ] `--sentinel` fires on "first non-zero", so a probe cannot mark a moment
-      with a zero value. Fine for every probe so far; document or widen it
-      before one needs to.
+- [x] **`--sentinel` can now name a moment whose value is zero.** The bare form
+      is unchanged — first non-zero, and every existing golden is byte-identical
+      — and `--sentinel A=V` was added beside it, firing when the cell *changes
+      to* V. It watches the edge rather than the level deliberately: `=0` on the
+      level would fire immediately against cleared erasable and mean nothing.
+      *Verified:* `sentinel_forms` runs a rope that writes a marker and then
+      clears it, and asserts the bare form and `=MARKER` name the same MCT,
+      `=0` names the clear strictly later, and `=0` stays silent on a cell
+      nothing ever wrote.
 - [x] `AGC_CHANNEL_COUNT` is 64; the DSKY protocol uses fictitious channel 0163
       for lamp state. **Resolved: the frontend's problem, not the core's.**
       0163 is an invention of yaAGC's socket protocol, used to carry the lamps
