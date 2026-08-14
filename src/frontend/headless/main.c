@@ -33,6 +33,8 @@ static void usage(const char *argv0)
             "                       K (key release), + or -. Repeatable.\n"
             "  --uplink KEY:MCT     uplink the same key from the ground instead,\n"
             "                       as a triple-redundant word. Repeatable.\n"
+            "  --module N:PATH      load a physical rope-module dump as module N\n"
+            "                       (1-6). Repeatable; six of them make a rope.\n"
             "  --auto-proceed       press PRO whenever the program lights OPR ERR\n"
             "                       and waits, reporting the PROG/NOUN it stopped\n"
             "                       on. This is how the Validation suite is run:\n"
@@ -143,6 +145,7 @@ int main(int argc, char **argv)
     bool trace = false, trace_mct = false, dump_state = false;
     bool dump_counters = false, dump_channels = false;
     bool dump_dsky = false, trace_dsky = false, auto_proceed = false;
+    bool loaded_module = false;
     struct press presses[MAX_PRESSES];
     size_t press_count = 0;
     struct dump dumps[MAX_DUMPS];
@@ -185,6 +188,23 @@ int main(int argc, char **argv)
             dump_dsky = true;
         } else if (strcmp(a, "--trace-dsky") == 0) {
             trace_dsky = true;
+        } else if (strcmp(a, "--module") == 0) {
+            const char *spec = argv[++i];
+            const char *colon = spec ? strchr(spec, ':') : NULL;
+            if (!colon) {
+                fprintf(stderr, "--module wants N:PATH, e.g. 1:bios/rope-modules/x.bin\n");
+                free(m);
+                return 2;
+            }
+            unsigned n = (unsigned)strtoul(spec, NULL, 0);
+            long words = agc_memory_load_module(&m->mem, colon + 1, n);
+            if (words < 0) {
+                fprintf(stderr, "cannot read rope module %s\n", colon + 1);
+                free(m);
+                return 1;
+            }
+            fprintf(stderr, "loaded %ld words as module %u from %s\n", words, n, colon + 1);
+            loaded_module = true;
         } else if (strcmp(a, "--auto-proceed") == 0) {
             auto_proceed = true;
         } else if (strcmp(a, "--press") == 0) {
@@ -289,7 +309,7 @@ int main(int argc, char **argv)
     /* Loading the rope after agc_init means the power-on GOJAM has already run
      * against empty fixed memory. Run it again so the first fetch sees the
      * rope, exactly as a machine powered up with its ropes installed does. */
-    if (rope || rope_at) {
+    if (rope || rope_at || loaded_module) {
         agc_cpu_start(m);
     }
 

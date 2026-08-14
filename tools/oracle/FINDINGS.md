@@ -443,3 +443,20 @@ spacecraft discretes at their idle state is the honest default for a machine
 with no spacecraft attached, and inventing a failure to make one rope happier
 would be the wrong trade — but a frontend that wants Aurora 12 to run past this
 point now knows exactly which bit to hold.
+
+## Physical rope modules
+
+| # | Question | Answer | Source |
+|---|---|---|---|
+| 74 | What is actually in a rope-module dump? | Six banks, not a bank pair; yaAGC's `--parity` word layout, not the `--hardware` layout our fixed memory stores; and the first four banks of the image in the order **02, 03, 00, 01**, so module B1 carries the fixed-fixed pair first. | The dump library's own README for the module/bank map, and the rest measured: our assembled LM131R1 and the dump agreed in no words at all until all three were undone, and in *every* word once they were. |
+| 75 | Is the plan's named check the right one? | No. `Luminary131PlusLM131R1ModuleDump.bin` is a dump of **LM131R1**, not of Luminary 131 — they are different builds, and `tools/build_ropes.sh` carried the wrong assumption in a comment. It now assembles LM131R1 too. | Diffing found 36 524 of 36 864 words differing against Luminary 131 and 0 against LM131R1. |
+
+That LM131R1-versus-its-own-dump comparison is worth more than it looks. It is
+the only check in the project where both sides are independent of us: MIT's
+source on one side, a physical article read back on the other, and our assembler
+invocation, `--hardware` bit layout, odd-parity rule and bank ordering all in
+between. All 36 864 words agree.
+
+| # | Finding |
+|---|---|
+| 76 | **The PARITY FAIL alarm proves itself on real damage.** Retread 50 booted from the B1 module *as dumped while defective* raises PARITY FAIL; booted from the same module after repair it does not, and gets far enough to trip TC TRAP instead. 702 of that module's words fail odd parity and every other dumped Block II module is clean. Nobody simulated the fault: it is a physical defect in an article from 1966, and the alarm that exists to catch it catches it. |

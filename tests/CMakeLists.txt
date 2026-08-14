@@ -90,6 +90,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(mit_validation_suite PROPERTIES TIMEOUT 900)
 endif()
 
+# The physical rope modules: dumps read back from real Apollo-era hardware,
+# including one defective article and the same one repaired. Checks the rope
+# image layout end to end (LM131R1 assembled from source against the dump taken
+# off the article), odd parity across every module, and the PARITY FAIL alarm
+# proving itself against damage nobody simulated.
+#
+# Needs the staged dumps, so it skips cleanly when bios/ is empty, as CI's is.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME physical_rope_modules
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/rope_modules.py
+                     --exe $<TARGET_FILE:agc_headless>)
+    set_tests_properties(physical_rope_modules PROPERTIES TIMEOUT 600)
+endif()
+
 # The widest net in the project: the whole of erasable memory plus the register
 # file after 200,000 MCTs of real flight software, hashed. The probes check what
 # we thought to check; this notices a divergence anywhere in 2048 words, in

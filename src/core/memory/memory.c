@@ -149,3 +149,52 @@ long agc_memory_load_rope_at(agc_memory *m, const char *path, unsigned bank)
 {
     return load_words(m, path, bank * 1024u);
 }
+
+/* Which bank each slot of a rope image holds. Only the first four are out of
+ * order; from bank 04 on, slot and bank agree. */
+static unsigned image_slot_bank(unsigned slot)
+{
+    static const unsigned first_four[4] = { 2u, 3u, 0u, 1u };
+    return slot < 4u ? first_four[slot] : slot;
+}
+
+long agc_memory_load_module(agc_memory *m, const char *path, unsigned module)
+{
+    if (module < 1u || module > 6u) {
+        return -1;
+    }
+
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        return -1;
+    }
+
+    long count = 0;
+    unsigned char pair[2];
+    const unsigned first_slot = (module - 1u) * AGC_ROPE_MODULE_BANKS;
+
+    for (unsigned i = 0; i < AGC_ROPE_MODULE_BANKS * 1024u; ++i) {
+        if (fread(pair, 1, 2, f) != 2) {
+            break;
+        }
+        unsigned parity_layout = ((unsigned)pair[0] << 8) | pair[1];
+
+        /* --parity to --hardware: parity is in bit 1 and the data sits above
+         * it, so shift the data down and put the parity back in position 15
+         * with data bit 15 above it. */
+        unsigned data = parity_layout >> 1;
+        unsigned parity = parity_layout & 1u;
+        unsigned word = (data & 037777u) | (parity << 14) | (((data >> 14) & 1u) << 15);
+
+        unsigned bank = image_slot_bank(first_slot + i / 1024u);
+        unsigned addr = bank * 1024u + (i % 1024u);
+        if (addr < AGC_FIXED_ADDR_SPAN) {
+            m->fixed[addr] = agc_w(word);
+            count++;
+        }
+    }
+
+    bool bad = ferror(f) != 0;
+    fclose(f);
+    return bad ? -1 : count;
+}

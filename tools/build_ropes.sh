@@ -44,7 +44,8 @@ ropes=(
     SundialE        # Block II erasable/fixed exerciser
     Luminary099     # Apollo 11 LM (the Eagle rope)
     Comanche055     # Apollo 11 CM
-    Luminary131     # Apollo 13/14 LM — matches the LM131R1 physical module dump
+    Luminary131     # Apollo 13/14 LM
+    LM131R1         # the build the Luminary131PlusLM131R1 module dump was read from
     Artemis072      # Apollo 15-17 CM
     Zerlina56       # late experimental LM rope
 )

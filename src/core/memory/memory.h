@@ -65,6 +65,25 @@ long agc_memory_load_rope(agc_memory *m, const char *path);
  * to. Returns the number of words read, or -1 on I/O error. */
 long agc_memory_load_rope_at(agc_memory *m, const char *path, unsigned bank);
 
+/* Load one physical rope-module dump. A Block II module is six banks, and the
+ * dumps in bios/rope-modules/ are read back from the real articles, so they
+ * differ from an assembled rope in two ways that both have to be undone:
+ *
+ *   - **Word layout.** They are in yaAGC's `--parity` layout (parity in bit 1,
+ *     the fifteen data bits shifted up into 2-16), not the `--hardware` layout
+ *     our fixed memory stores. Reading one raw decodes every opcode one bit
+ *     out — the trap FINDINGS #19 already warned about, met in the wild.
+ *   - **Bank order.** The first four banks of a rope image are stored 02, 03,
+ *     00, 01 and everything after that runs straight. Module B1 therefore
+ *     carries the fixed-fixed pair first.
+ *
+ * `module` is 1 through 6, as stamped on the article. Returns words loaded,
+ * or -1. */
+long agc_memory_load_module(agc_memory *m, const char *path, unsigned module);
+
+/* Banks per Block II rope module. */
+#define AGC_ROPE_MODULE_BANKS 6u
+
 /* Address arithmetic, shared with the CPU's S-register handling. */
 agc_word agc_erasable_absolute(agc_word s, agc_word eb);
 unsigned agc_fixed_absolute(agc_word s, agc_word fb, agc_word fext);

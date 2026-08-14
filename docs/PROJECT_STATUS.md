@@ -31,6 +31,14 @@ The rest of what can be said today:
   the probe goldens and across nine flight and test ropes run for 200 000 MCTs
   each.
 
+**The rope image layout is confirmed against physical hardware.** LM131R1
+assembled from its own source equals the dump read back off the real rope module
+in all 36 864 words — the assembler invocation, the `--hardware` bit layout, the
+odd-parity rule and the bank ordering, all checked at once against an article
+that flew. And the PARITY FAIL alarm proves itself on real damage: booting
+Retread 50 from the module that was dumped while defective raises it, and the
+same module after repair does not.
+
 **MIT's own instruction validation suite passes.** The Validation rope runs to
 completion on our core and reports success on the panel — 3.37 million MCTs, 39
 seconds of emulated time, and not one of its `Validate<OP>` checks fails. That
@@ -92,7 +100,8 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | Control pulses (all 71, plus the three implicit signals) | Working | Exercised through the subinstruction tables by `cpu_suite`; individual semantics read from the memo |
 | Central registers + adder (ones' complement, end-around carry, NEACON + MP3A) | Working | `cpu_suite`: end-around carry, x + (−x) = −0, and multiply's two carry inhibits |
 | Erasable memory (destructive read at T5, rewrite before T10, editing registers) | Working | `memory_suite` |
-| Fixed memory (rope layout, parity, bank + superbank addressing) | Working | `memory_suite`; parity alarm confirmed by `cpu_suite` |
+| Fixed memory (rope layout, parity, bank + superbank addressing) | Working | `memory_suite`; layout confirmed word-for-word against a physical rope module by `physical_rope_modules` |
+| Physical rope-module dumps (six banks, `--parity` layout, 02/03/00/01 order) | Working | `physical_rope_modules`; the defective article raises PARITY FAIL and the repaired one does not |
 | Banking (EB, FB, BB, FEXT) | Working | `memory_suite`; flight ropes switch banks continuously without alarming |
 | Scaler / timer (17 stages, documented taps) | Working | `timing_suite`: divisor, stage-10 rising edge → TIME1/TIME3, stage-6 → TIME6 gated on channel 13 bit 16; F05A drive counters via the `counters` probe |
 | Hardware alarms (PARITY FAIL, TC TRAP, RUPT LOCK, NIGHT WATCHMAN) | Working | `timing_suite`, one test per alarm, isolated with `alarm_inhibit` |

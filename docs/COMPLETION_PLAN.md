@@ -217,11 +217,13 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       that the only codes displayed are the opening checkpoint and the closing
       PROG 77 (MAXERR). No `Validate<OP>` module reports a failure. Detail in
       `PROJECT_STATUS.md`.
-- [ ] **Boot the physical rope-module dumps** in `bios/rope-modules/`, including
-      the `-BadBits` and `-SomeDefects` variants.
-      *Verification:* the defective modules raise PARITY FAIL and the
-      `-Repaired` controls do not — the alarm proving itself on real damaged
-      hardware.
+- [x] **Boot the physical rope-module dumps** in `bios/rope-modules/`.
+      *Verified:* `physical_rope_modules` in CTest. Booting Retread 50 from the
+      **defective** B1 raises **PARITY FAIL** (channel 77 bit 1); booting it
+      from the same module **repaired** does not. The alarm proving itself
+      against damage nobody simulated. All thirteen Block II dumps are also
+      parity-scanned: the BadBits article has 702 words failing odd parity and
+      every other one is clean.
 - [x] **Characterise Aurora 12's RUPT LOCK.** It is our own frozen input
       discretes, and the rope is behaving as written: channel 32 idles at all
       ones, Aurora complements that to "nothing has failed", and its
@@ -231,11 +233,17 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       32 427 every time. Not an arithmetic defect — the loop turns on DOUBLE,
       TS's overflow skip and MP by +0, all three of which MIT's Validation
       suite exercises and passes. FINDINGS #72-73.
-- [ ] **Rope-module dump loader coverage**: dumps are bank pairs, not whole
-      ropes, and load at a bank offset.
-      *Verification:* assembling Luminary 131 from source and diffing against
-      `Luminary131PlusLM131R1ModuleDump.bin` — a free end-to-end check of the
-      loader against real hardware.
+- [x] **Rope-module dump loader coverage.** The premise was wrong twice over
+      and both corrections are in `agc_memory_load_module`: a Block II module is
+      **six banks**, not a bank pair; the dumps are in yaAGC's `--parity` word
+      layout rather than the `--hardware` layout our fixed memory stores; and
+      the first four banks of a rope image are ordered **02, 03, 00, 01**. The
+      named comparison was also against the wrong rope — that dump is of
+      **LM131R1**, which `tools/build_ropes.sh` now assembles.
+      *Verified:* LM131R1 assembled from source equals the dump taken off the
+      physical article in **all 36 864 words**, which exercises the assembler
+      invocation, the bit layout, the parity rule and the bank order at once.
+      FINDINGS #74-75.
 
 ## Phase 5 — Beyond Block II
 
