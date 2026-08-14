@@ -27,11 +27,20 @@ jobs:
     runs-on: ubuntu-latest
     container: rockylinux:9
     steps:
-      - uses: actions/checkout@v4
+      # git has to exist BEFORE actions/checkout. Nothing is preinstalled in
+      # this image, and with no git the checkout silently falls back to a REST
+      # tarball download — no .git directory — after which the submodule step
+      # dies with "fatal: not a git repository" and the failure points at the
+      # wrong line entirely. CRB is needed for ninja-build; python3 and git are
+      # not implied by anything. (emulator-setup-guide.md section 3, which
+      # documents this exact trap; we walked into it anyway.)
       - run: |
           dnf install -y dnf-plugins-core
           dnf config-manager --set-enabled crb
           dnf install -y clang cmake ninja-build git python3
+      # The checkout is owned by a different user than the container runs as.
+      - run: git config --global --add safe.directory '*'
+      - uses: actions/checkout@v4
       - run: git submodule update --init ext/unity
       - run: cmake --preset linux-ci && cmake --build --preset linux-ci
       - run: ctest --preset linux-ci --output-on-failure
