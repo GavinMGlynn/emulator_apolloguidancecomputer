@@ -98,6 +98,13 @@ static bool parse_press(const char *spec, struct press *out)
             out->key = keys[i].key;
             out->mct = strtoull(colon + 1, NULL, 0);
             out->done = false;
+            /* --uplink sets this afterwards. Leaving it to the caller left it
+             * reading whatever was on the stack, which sent an arbitrary subset
+             * of --press keys through the ground uplink instead of the
+             * keyboard — a different path with different timing, chosen by the
+             * build. Two identical runs of two builds disagreed about what the
+             * flight software had been told. */
+            out->uplinked = false;
             return true;
         }
     }
@@ -152,7 +159,7 @@ int main(int argc, char **argv)
     bool dump_counters = false, dump_channels = false;
     bool dump_dsky = false, trace_dsky = false, auto_proceed = false;
     bool loaded_module = false;
-    struct press presses[MAX_PRESSES];
+    struct press presses[MAX_PRESSES] = {0};
     size_t press_count = 0;
     struct dump dumps[MAX_DUMPS];
     size_t dump_count = 0;

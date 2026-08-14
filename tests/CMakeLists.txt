@@ -124,6 +124,25 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(mit_validation_suite PROPERTIES TIMEOUT 900)
 endif()
 
+# The whole machine, end to end, from a flown rope. Boots Luminary 099 and
+# Comanche 055, keys the documented fresh-start sequence at them, and then runs
+# V35 — the DSKY's own lamp test, which makes the flight software fill all seven
+# display fields with 8s and flash them. Nothing partial passes it, and every
+# layer has to be right for it to: rope image, instruction set, timing, priority
+# control, keyboard interrupt, PINBALL, channel 10 and the relay decode.
+#
+# It is also the standing answer to FINDINGS #59: these ropes show nothing from
+# a cold start because they are waiting to be talked to, not because anything is
+# broken. Talked to, both of them answer.
+#
+# Needs the assembled ropes, so it skips cleanly when roms/ is empty, as CI's is.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME flight_rope_dsky
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/flight_rope_dsky.py
+                     --exe $<TARGET_FILE:agc_headless>)
+    set_tests_properties(flight_rope_dsky PROPERTIES TIMEOUT 900)
+endif()
+
 # The physical rope modules: dumps read back from real Apollo-era hardware,
 # including one defective article and the same one repaired. Checks the rope
 # image layout end to end (LM131R1 assembled from source against the dump taken

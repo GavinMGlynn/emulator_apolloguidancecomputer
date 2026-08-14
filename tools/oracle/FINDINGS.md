@@ -349,7 +349,7 @@ table, and saying so is what that code is for.)
 
 | # | Finding |
 |---|---|
-| 59 | **The flight ropes display nothing until they are talked to.** Luminary 099, Comanche 055, Artemis 072 and Zerlina 56 all run DSPOUT — 208 relay words in 23 emulated seconds, cycling every bank — and every one of them is blank, with the PROG light on. A keypress does reach the software: pressing VERB lights KEY REL, which is `CHARIN`'s documented response to a key arriving while a flashing display is pending. Whether these ropes should reach a V37 display from a cold start without further input is a question about the ropes, not about the DSKY, and is a plan item rather than a fix. |
+| 59 | **Answered in #81 — they are waiting for the keyboard, and that is correct.** The original entry follows. **The flight ropes display nothing until they are talked to.** Luminary 099, Comanche 055, Artemis 072 and Zerlina 56 all run DSPOUT — 208 relay words in 23 emulated seconds, cycling every bank — and every one of them is blank, with the PROG light on. A keypress does reach the software: pressing VERB lights KEY REL, which is `CHARIN`'s documented response to a key arriving while a flashing display is pending. Whether these ropes should reach a V37 display from a cold start without further input is a question about the ropes, not about the DSKY, and is a plan item rather than a fix. |
 | 60 | **A restart leaves the display standing.** GOJAM clears the output channels, so channel 11's lamps go out, but channel 10 only ever *addresses* a relay bank — clearing it selects bank 0 and resets nothing. The latching relays keep showing whatever they held. That asymmetry is free if the DSKY watches the same channel writes the machine makes, and wrong in both directions if it is modelled as a decoded display that gets cleared. |
 
 ## The serial counters, and a bug they exposed
@@ -553,3 +553,49 @@ Two smaller things fell out on the way:
   exactly as ZIP's run-time operands already were.
 
 **1672 rows across 36 subinstructions, 0 disagreeing** — up from 1392 across 29.
+
+## #81 — What the flight ropes are waiting for
+
+They are waiting for a person. Blank from a cold start is the rope being
+correct, not the emulator being broken, and Virtual AGC's own LM tutorial says
+so in as many words: *"After a fresh AGC start there is a need to do a reset by
+typing V36E."*
+
+Keyed the documented way, both Apollo 11 ropes answer:
+
+| Keys | What Luminary 099 and Comanche 055 do |
+| ---- | ------------------------------------- |
+| `V 3 6 E` | Each digit appears as it is struck; ENTER takes the fresh start and clears the panel. |
+| `V 3 5 E` | The **lamp test**: every digit of all seven fields goes to 8, all three signs to +, and the panel flashes. Fully lit at MCT 865 577 on both ropes. |
+| `V 3 7 E 0 0 E` | V37 comes up **flashing** — the AGC asking for a two-digit major mode — takes `00`, stops flashing, and clears. |
+
+The lamp test is the strongest end-to-end statement this project can make: the
+rope image, the instruction set, the timing, priority control, the keyboard
+interrupt, PINBALL, channel 10 and the relay decode all have to be right, and
+nothing partial looks like success. It runs as the `flight_rope_dsky` test.
+
+**Still open, and narrower than the original question:** after `V37E 00E` the
+PROG field stays blank rather than showing `00`, through 25 000 000 MCTs — five
+minutes of AGC time. `V37XEQ` (04,2330), `DSPMM` (04,2636) and `DSPMMJB`
+(40,3534) are never reached, and bank 40 never executes at all, so the verb is
+being *entered* but not *dispatched*. It is not the display path: the same
+panel shows `PROG 88` under the lamp test, and `PROG 00` under Sundial E. Logged
+as its own tail.
+
+### The bug this turned up
+
+Chasing it found something worse than the thing being chased. `--press` and
+`--uplink` share a `struct press`, and `parse_press()` filled in every field
+except `uplinked`, on a stack array that was never initialised. So an arbitrary
+subset of `--press` keys went to the *ground uplink* instead of the keyboard —
+a different path with different timing — and which subset depended on the build.
+
+Two identical runs of two builds disagreed about what the flight software had
+been told, and the tell was there in plain sight for a long time: a run using
+only `--press` printed `UPLINK accepted 16 refused 0 words 1`.
+
+It is worth being precise about why nothing caught it. Every probe golden, the
+validation suite and the rope hashes were byte-identical between debug and
+release, because **not one of them presses a key** — the probes are self-driving
+ropes. The identity harness was sound; its coverage had a hole exactly the shape
+of the keyboard. `flight_rope_dsky` now runs in both build types and closes it.
