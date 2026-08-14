@@ -145,7 +145,7 @@ run for 200 000 MCTs (2.34 emulated seconds) from a cold GOJAM:
 | **Validation (MIT instruction validation suite)** | **passes**, then restarts on TC TRAP from its own DONE loop | opening checkpoint, then `PROG 77` |
 | Retread 50 | runs, no alarm | blank |
 | **Sundial E** | runs, no alarm | **`VERB 05 NOUN 31`, `01107` in R2** |
-| Aurora 12 | **RUPT LOCK** between 20 000 and 60 000 MCTs — uncharacterised | blank |
+| Aurora 12 | **RUPT LOCK** at MCT 32 427, from its own RCS monitor — see below | blank |
 
 "No alarm" means the machine did not restart itself. It does **not** yet mean
 the ropes are computing correct answers: nothing reads the Validation suite's
@@ -172,7 +172,7 @@ Each has a reason and a cost to close, and each is a named item in
 | Approximation | Reason | Cost to close |
 |---|---|---|
 | **POUT and MOUT do nothing.** | They drive the CDU error counters and gyro torque pulses; there is no CDU or IMU. Marked PROVISIONAL in `pulses.c`. | Medium — needs the CDU subsystem. |
-| **Channel 30's discretes are frozen** at "TEMP IN LIMITS, IMU OPERATE" and channels 31–33 at all-ones. | No spacecraft to drive them. Documented in `channels.c`. | Small per discrete, once there is something to model. |
+| **Channel 30's discretes are frozen** at "TEMP IN LIMITS, IMU OPERATE" and channels 31–33 at all-ones. | No spacecraft to drive them. Documented in `channels.c`. **This is what stops Aurora 12** (FINDINGS #72), which is the clearest illustration of the cost: an idle discrete is still an input, and a rope may read it. | Small per discrete, once there is something to model. |
 | **Fixed memory covers the full 40 960-word superbank span**, with only 36 864 populated. | An out-of-range fetch then reads zeroes and fails parity, which is what the hardware does when the sense lines find no rope. Not an approximation so much as a deliberate choice; recorded so it is not mistaken for a bug. | n/a |
 | **No wall-clock pacing anywhere in the core.** | Determinism. Time advances only when the frontend calls `agc_tick`. | n/a — this is a design rule, not a gap. |
 | **Which half of the DSKY flash is lit is a guess.** | The gates fix the *rate* (`NOR(FS17, FS16)`) and the fact that the VERB/NOUN displays flash in antiphase to the KEY REL and OPR ERR lamps — both are asserted. Whether energising the VNFLSH relay blanks the display or lights it is a question about the panel's own wiring, and neither Information Series #30 nor the module sheets we hold say. We show the displays while FLASH is high. | Small, and cosmetic: it inverts a blink. Closing it needs a DSKY wiring diagram rather than an AGC one. |
@@ -200,11 +200,13 @@ Each has a reason and a cost to close, and each is a named item in
   the software. Whether those ropes should get to a display unaided is a
   question about them rather than about the DSKY (FINDINGS #59), and it is a
   plan item, not a claim that this works.
-- **Aurora 12's RUPT LOCK is uncharacterised.** It may be correct behaviour for
-  a development rope that never arms an interrupt source, or it may be the
-  missing SHINC path. **The second hypothesis is now eliminated**: the serial
-  counters are implemented and Aurora 12 still latches the alarm at the same
-  point. Characterise before fixing.
+- **Aurora 12's RUPT LOCK is characterised and is ours.** Channel 32 idles at
+  all ones because there is no spacecraft; Aurora complements that to "nothing
+  has failed" and its highest-set-bit loop has no exit for +0, so it spins
+  inside T4RUPT until the alarm restarts the machine. Hold any one of channel
+  32's low eight bits low and it runs 200 000 MCTs cleanly. Left as it is: the
+  approximation is the honest default, and inventing a failure to make one rope
+  happier would be the wrong trade. FINDINGS #72-73.
 - **The gate reading is static, not a running simulation.** `gate_sim.py`
   evaluates the netlist to steady state per timing pulse, which is exactly right
   for a cross-point matrix (R-700 vol. III p. 5-6 calls it a logic product of

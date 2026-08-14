@@ -404,3 +404,42 @@ asserting it through a real store.
 | # | A real defect: ZOUT could not stop the X drive |
 |---|---|
 | 71 | `ZOUT` cleared the axis's channel 14 bit by reading the channel, masking, and writing it back through `agc_cpu_read_channel`/`agc_cpu_write_channel`. Those two wrap the fixup a *program* sees — a channel carries write-line bits 1-14 and 16, with no bit 15 of its own — so the read sign-extends bit 15 into bit 16 and the write puts it straight back. The X axis is bit 15. Its drive could therefore never be turned off, and would have run for ever once started; Y and Z, at bits 14 and 13, were fine. ZOUT is hardware clearing a flip-flop, not a program storing a word, and now goes at the channel directly. Found by the test that asserts the drive stops. |
+
+## Aurora 12's RUPT LOCK, characterised
+
+Open since the first rope boots, and resolved without changing a line of the
+core: it is our own frozen input discretes, and the rope is behaving exactly as
+written.
+
+What happens, in order:
+
+1. Aurora's T4RUPT handler compares channel 32's low eight bits against
+   `LASTFAIL`. At power-up `LASTFAIL` is +0 and our channel 32 reads all ones —
+   channels 30-33 are inverted, and we freeze them at their idle state because
+   there is no spacecraft — so the comparison says the RCS status has *changed*
+   and it calls `RCSMNTR`.
+2. `RCSMNTR` reads channel 32 and complements it: `COM  # FAILURES NOW ONES`.
+   The channel is inverted, so a one means healthy, and complementing all ones
+   gives **+0** — "nothing has failed at all".
+3. It then hunts for the highest set bit with a loop that exits on the overflow
+   skip of a `TS`:
+
+       25,3434  NXTRCSPR  INCR   FAILCTR
+       25,3435            DOUBLE
+       25,3436            TS     FAILTEMP   # OVERFLOW CHECK
+       25,3437            TCF    NXTRCSPR
+
+   Doubling +0 gives +0 for ever, `TS` never overflows, and the loop never
+   ends. `FAILCTR` counts up until the interrupt has been in progress for long
+   enough that RUPT LOCK restarts the machine — at MCT 32 427, every time.
+
+| # | Finding |
+|---|---|
+| 72 | **Aurora 12's RUPT LOCK is ours, and it is one input bit wide.** Hold any one of channel 32's low eight bits low — report a single RCS failure — and Aurora runs 200 000 MCTs with no alarm at all. Leave the channel at its idle all-ones and it restarts at MCT 32 427 without fail. The rope's bit-search loop simply has no exit for "no failures", which for a 1966 development build is a plausible thing to have left out, and which it can only reach because a cold `LASTFAIL` of +0 makes "no failures" look like a change of status. |
+| 73 | **It is not an arithmetic defect, and that can be said with evidence rather than by inspection.** The loop turns on `DOUBLE`, on `TS`'s overflow skip and on `MP` by +0, and MIT's own Validation suite exercises all three and passes. The chain was still checked directly: A is +0 at the top of every pass, `FAILCTR` climbs, `FAILTEMP` stays +0. |
+
+The deliberate approximation that causes it stays as it is. Freezing the
+spacecraft discretes at their idle state is the honest default for a machine
+with no spacecraft attached, and inventing a failure to make one rope happier
+would be the wrong trade — but a frontend that wants Aurora 12 to run past this
+point now knows exactly which bit to hold.

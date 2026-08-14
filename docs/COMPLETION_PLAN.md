@@ -222,9 +222,15 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       *Verification:* the defective modules raise PARITY FAIL and the
       `-Repaired` controls do not — the alarm proving itself on real damaged
       hardware.
-- [ ] **Characterise Aurora 12's RUPT LOCK** (PROJECT_STATUS known gap).
-      *Verification:* either a FINDINGS row explaining why it is correct
-      behaviour for that rope, or a fix with the probe that proves it.
+- [x] **Characterise Aurora 12's RUPT LOCK.** It is our own frozen input
+      discretes, and the rope is behaving as written: channel 32 idles at all
+      ones, Aurora complements that to "nothing has failed", and its
+      highest-set-bit loop (`DOUBLE` / `TS` / `TCF`) has no exit for +0.
+      *Verified:* hold any one of channel 32's low eight bits low and Aurora
+      runs 200 000 MCTs with no alarm; leave it idle and it restarts at MCT
+      32 427 every time. Not an arithmetic defect — the loop turns on DOUBLE,
+      TS's overflow skip and MP by +0, all three of which MIT's Validation
+      suite exercises and passes. FINDINGS #72-73.
 - [ ] **Rope-module dump loader coverage**: dumps are bank pairs, not whole
       ropes, and load at a bank offset.
       *Verification:* assembling Luminary 131 from source and diffing against
