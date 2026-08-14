@@ -2,11 +2,17 @@
 # Re-download the hardware references into docs/references/.
 #
 # Most of these are committed, because they are what the core cites and you want
-# them to hand. Two are not:
+# them to hand. Some are not:
 #
 #   - agcis_32_blk2_instructions.pdf is 94 MB, close enough to GitHub's 100 MB
 #     hard limit to be a liability, so it is gitignored and fetched on demand.
 #   - block2-schematics/ is 52 sheets mirrored from klabs.org.
+#   - the-apollo-guidance-computer_jp2/ is 20 MB of page scans from archive.org.
+#
+# One reference this script deliberately does *not* fetch: Frank O'Brien's "The
+# Apollo Guidance Computer: Architecture and Operation" is a current commercial
+# book, not a government-funded report we may mirror. See
+# docs/references/README.md.
 #
 # The script is idempotent: it skips anything already present, so running it
 # after a fresh clone gets you the missing pieces and nothing else.
@@ -37,6 +43,27 @@ get "$ibiblio/hrst/archive/1008.pdf" \
     "$refs/AGC4-Logical-Description-1963.pdf"
 get "$ibiblio/NARA-SW/E-2052.pdf" \
     "$refs/E-2052-AGC4-Basic-Training-Manual.pdf"
+
+echo "Whole-machine reports:"
+get "$ibiblio/Documents/R-700.pdf" \
+    "$refs/R-700.pdf"
+
+# Alonso & Hopkins, "The Apollo Guidance Computer" (R-393, 1963), as 40 page
+# scans on archive.org. Gitignored for size; the item also carries a 3.4 MB PDF
+# of the same pages if you would rather have one file.
+echo "Alonso & Hopkins R-393 page scans (archive.org):"
+ia_item="the-apollo-guidance-computer"
+scans="$refs/${ia_item}_jp2"
+if compgen -G "$scans/*.jp2" >/dev/null; then
+    printf '  have %s\n' "${scans#"$refs"/}"
+elif ! command -v unzip >/dev/null; then
+    echo "  skip ${scans#"$refs"/}: needs unzip" >&2
+else
+    get "https://archive.org/download/$ia_item/${ia_item}_jp2.zip" "$scans.zip"
+    if [[ -s $scans.zip ]]; then
+        unzip -qo "$scans.zip" -d "$refs" && rm -f "$scans.zip"
+    fi
+fi
 
 echo "Apollo Guidance Computer Information Series:"
 series=(

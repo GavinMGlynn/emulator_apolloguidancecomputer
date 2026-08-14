@@ -19,10 +19,19 @@
 # anything.
 !/tests/probes/*.bin
 
-# One reference is too big to commit comfortably: at 94 MB it is within a few
-# megabytes of GitHub's hard 100 MB per-file limit. tools/fetch_docs.sh
-# re-downloads it (and everything else under docs/references) on demand.
+# References that are not committed. tools/fetch_docs.sh restores them (and
+# everything else under docs/references) on demand.
+#
+#   agcis_32     94 MB, within a few megabytes of GitHub's hard per-file limit.
+#   _jp2/        20 MB of page scans; the fetch script pulls them from archive.org.
+#   O'Brien      Frank O'Brien's book is a current commercial publication
+#                (Springer/Praxis). Everything else here is a government-funded
+#                MIT/NASA report we may freely mirror; that one is not ours to
+#                redistribute, so the script does not fetch it either — see
+#                docs/references/README.md for where to buy it.
 /docs/references/agc-information-series/agcis_32_blk2_instructions.pdf
+/docs/references/the-apollo-guidance-computer_jp2/
+/docs/references/L-G-*.pdf
 
 # Editor / OS cruft
 .idea/
