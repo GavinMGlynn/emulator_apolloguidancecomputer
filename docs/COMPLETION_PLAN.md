@@ -205,10 +205,18 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       `--frames` bounded mode so it can be smoke-tested headlessly.
       *Verification:* boots a rope and displays V37 under a dummy SDL driver in
       CI.
-- [ ] **Run the Validation suite to completion and read its verdict** out of
-      erasable memory rather than merely not alarming.
-      *Verification:* every `Validate<OP>` module reports pass; this is the
-      single highest-value item in the whole plan.
+- [x] **Run the Validation suite to completion and read its verdict.** It turns
+      out not to write a pass/fail cell at all: it reports through the DSKY, the
+      way it would report to a technician standing in front of one — a code in
+      PROG, a sub-code in NOUN, OPR ERR lit, waiting for PRO. So reading the
+      verdict meant implementing PROCEED (channel 32 bit 14, low polarity) and
+      an `--auto-proceed` mode that presses it at every stop and reports what
+      was displayed.
+      *Verified:* **it passes.** `mit_validation_suite` in CTest runs a full
+      pass — about 3.37 million MCTs, 39 seconds of emulated time — and checks
+      that the only codes displayed are the opening checkpoint and the closing
+      PROG 77 (MAXERR). No `Validate<OP>` module reports a failure. Detail in
+      `PROJECT_STATUS.md`.
 - [ ] **Boot the physical rope-module dumps** in `bios/rope-modules/`, including
       the `-BadBits` and `-SomeDefects` variants.
       *Verification:* the defective modules raise PARITY FAIL and the

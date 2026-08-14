@@ -76,6 +76,20 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(oracle_differential PROPERTIES TIMEOUT 600)
 endif()
 
+# MIT's own instruction validation suite, run to completion and its verdict read
+# off the panel rather than inferred from the absence of an alarm. The rope
+# reports through the DSKY — a code in PROG, a sub-code in NOUN, OPR ERR lit,
+# waiting for PRO — so this presses PRO at every stop and checks that the only
+# codes displayed are the opening checkpoint and the closing PROG 77.
+#
+# Needs the assembled rope, so it skips cleanly when roms/ is empty, as CI's is.
+if(Python3_Interpreter_FOUND)
+    add_test(NAME mit_validation_suite
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/validation.py
+                     --exe $<TARGET_FILE:agc_headless>)
+    set_tests_properties(mit_validation_suite PROPERTIES TIMEOUT 900)
+endif()
+
 # The widest net in the project: the whole of erasable memory plus the register
 # file after 200,000 MCTs of real flight software, hashed. The probes check what
 # we thought to check; this notices a divergence anywhere in 2048 words, in

@@ -185,6 +185,22 @@ void agc_dsky_release(agc *m)
     agc_channel_write(&m->channels, AGC_CH_DSKY_IN2, 0);
 }
 
+void agc_dsky_set_proceed(agc *m, bool pressed)
+{
+    agc_word ch32 = agc_channel_read(&m->channels, 032u);
+    if (pressed) {
+        ch32 = agc_w(ch32 & ~(unsigned)AGC_CH32_PROCEED);
+    } else {
+        ch32 = agc_w(ch32 | AGC_CH32_PROCEED);
+    }
+    agc_channel_write(&m->channels, 032u, ch32);
+}
+
+bool agc_dsky_proceed_pressed(const agc *m)
+{
+    return (agc_channel_read(&m->channels, 032u) & AGC_CH32_PROCEED) == 0;
+}
+
 uint8_t agc_dsky_digit(const agc_dsky *d, enum agc_dsky_digit position)
 {
     return d->digit[position];

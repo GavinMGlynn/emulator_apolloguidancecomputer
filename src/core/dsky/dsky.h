@@ -111,6 +111,12 @@ enum agc_dsky_key {
     AGC_KEY_NOUN  = 037,
 };
 
+/* PROCEED sits on channel 32 rather than either keyboard, and it is a
+ * *low*-polarity signal: the bit reads as one when the key is up and zero while
+ * it is held. Channel 32 is one of the inverted channels, so that falls out of
+ * the reset state rather than needing to be arranged. */
+#define AGC_CH32_PROCEED AGC_BIT(14)
+
 /* Channel 16 discretes, which are not keyboard codes: the optics MARK and MARK
  * REJECT buttons sit in bits 6 and 7 and raise the same interrupt. */
 #define AGC_DSKY_MARK        AGC_BIT(6)
@@ -166,6 +172,11 @@ void agc_dsky_press_nav(struct agc *m, agc_word bits, uint32_t hold);
 
 /* Release whatever is held, now. */
 void agc_dsky_release(struct agc *m);
+
+/* Hold or release PROCEED. Unlike the keyboard keys this raises no interrupt —
+ * a program that cares polls channel 32 — so it is a level, not a press. */
+void agc_dsky_set_proceed(struct agc *m, bool pressed);
+bool agc_dsky_proceed_pressed(const struct agc *m);
 
 /* What a digit position is showing: 0-9, or AGC_DSKY_BLANK. */
 uint8_t agc_dsky_digit(const agc_dsky *d, enum agc_dsky_digit position);

@@ -33,6 +33,11 @@ static void usage(const char *argv0)
             "                       K (key release), + or -. Repeatable.\n"
             "  --uplink KEY:MCT     uplink the same key from the ground instead,\n"
             "                       as a triple-redundant word. Repeatable.\n"
+            "  --auto-proceed       press PRO whenever the program lights OPR ERR\n"
+            "                       and waits, reporting the PROG/NOUN it stopped\n"
+            "                       on. This is how the Validation suite is run:\n"
+            "                       it stops at every checkpoint and at every\n"
+            "                       failure, and PROG 77 means it finished.\n"
             "  --sentinel A         watch octal erasable cell A; report the MCT at\n"
             "                       which it first becomes non-zero. Repeatable.\n"
             "                       The run stops once every sentinel has fired.\n"
@@ -48,6 +53,12 @@ static void usage(const char *argv0)
 #define MAX_DUMPS 32
 #define MAX_SENTINELS 64
 #define MAX_PRESSES 64
+
+/* Wait for the display to stop changing before reading it: ERRORDSP blanks
+ * eleven relay banks and then writes the code, and the OPR ERR lamp goes on
+ * before the digits are all in place. */
+#define PRO_SETTLE_PULSES 20000u
+#define PRO_HOLD_PULSES   20000u
 
 /* A scripted keypress: which key, and the MCT to press it at. Menus are driven
  * this way rather than from a clock, so a run is reproducible. */
@@ -131,7 +142,7 @@ int main(int argc, char **argv)
     unsigned long pulses = 0;
     bool trace = false, trace_mct = false, dump_state = false;
     bool dump_counters = false, dump_channels = false;
-    bool dump_dsky = false, trace_dsky = false;
+    bool dump_dsky = false, trace_dsky = false, auto_proceed = false;
     struct press presses[MAX_PRESSES];
     size_t press_count = 0;
     struct dump dumps[MAX_DUMPS];
@@ -174,6 +185,8 @@ int main(int argc, char **argv)
             dump_dsky = true;
         } else if (strcmp(a, "--trace-dsky") == 0) {
             trace_dsky = true;
+        } else if (strcmp(a, "--auto-proceed") == 0) {
+            auto_proceed = true;
         } else if (strcmp(a, "--press") == 0) {
             if (press_count == MAX_PRESSES || !parse_press(argv[++i], &presses[press_count])) {
                 fprintf(stderr, "--press wants KEY:MCT, e.g. V:1200\n");
@@ -282,6 +295,9 @@ int main(int argc, char **argv)
 
     char line[256];
     char dsky_line[256], dsky_prev[256] = "";
+    bool pro_held = false;
+    unsigned pro_settle = 0, pro_hold = 0;
+    unsigned long long stops = 0;
     size_t fired = 0;
     for (unsigned long i = 0; i < pulses; ++i) {
         for (size_t k = 0; k < press_count; ++k) {
@@ -296,6 +312,42 @@ int main(int argc, char **argv)
             }
         }
         agc_tick(m);
+
+        /* The Validation suite reports through the panel, not through memory:
+         * it puts a code in PROG and a sub-code in NOUN, lights OPR ERR and
+         * waits for PRO. Pressing it here turns "the machine did not alarm"
+         * into a list of what the suite actually said. */
+        if (auto_proceed) {
+            const bool waiting = agc_dsky_lamp(&m->dsky, AGC_DSKY_LAMP_OPR_ERR);
+            if (waiting && !pro_held) {
+                if (++pro_settle >= PRO_SETTLE_PULSES) {
+                    unsigned p1 = agc_dsky_digit(&m->dsky, AGC_DSKY_PROG1);
+                    unsigned p2 = agc_dsky_digit(&m->dsky, AGC_DSKY_PROG2);
+                    unsigned n1 = agc_dsky_digit(&m->dsky, AGC_DSKY_NOUN1);
+                    unsigned n2 = agc_dsky_digit(&m->dsky, AGC_DSKY_NOUN2);
+                    printf("STOP %llu PROG %u%u NOUN %u%u\n",
+                           (unsigned long long)(m->timepulses / AGC_TIMEPULSES_PER_MCT),
+                           p1 == AGC_DSKY_BLANK ? 0u : p1, p2 == AGC_DSKY_BLANK ? 0u : p2,
+                           n1 == AGC_DSKY_BLANK ? 0u : n1, n2 == AGC_DSKY_BLANK ? 0u : n2);
+                    agc_dsky_set_proceed(m, true);
+                    pro_held = true;
+                    pro_settle = 0;
+                    stops++;
+                }
+            } else if (!waiting) {
+                pro_settle = 0;
+                if (pro_held) {
+                    /* Hold it long enough for the program's own polling loop to
+                     * see it, then let go — it waits for the release too. */
+                    if (++pro_hold >= PRO_HOLD_PULSES) {
+                        agc_dsky_set_proceed(m, false);
+                        pro_held = false;
+                        pro_hold = 0;
+                    }
+                }
+            }
+        }
+
         if (trace_dsky) {
             agc_dsky_format(&m->dsky, dsky_line, sizeof dsky_line);
             if (strcmp(dsky_line, dsky_prev) != 0) {
@@ -351,6 +403,10 @@ int main(int argc, char **argv)
             }
             printf("E %04o %06o\n", addr, m->mem.erasable[addr]);
         }
+    }
+
+    if (auto_proceed) {
+        printf("STOPS %llu\n", stops);
     }
 
     if (dump_dsky) {

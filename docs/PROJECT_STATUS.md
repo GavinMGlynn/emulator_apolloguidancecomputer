@@ -31,6 +31,23 @@ The rest of what can be said today:
   the probe goldens and across nine flight and test ropes run for 200 000 MCTs
   each.
 
+**MIT's own instruction validation suite passes.** The Validation rope runs to
+completion on our core and reports success on the panel — 3.37 million MCTs, 39
+seconds of emulated time, and not one of its `Validate<OP>` checks fails. That
+is the strongest statement available about whether this machine computes the
+right answers, because it is MIT's own test of the instruction set rather than
+ours, and `mit_validation_suite` in CTest asserts it on every run.
+
+Reading the verdict took implementing the way the suite actually reports.
+It writes no pass/fail cell: it puts a code in PROG and a sub-code in NOUN,
+lights OPR ERR and waits for the PRO key, exactly as it would report to a
+technician standing at a DSKY. A pass is two stops and nothing between them —
+the opening checkpoint (`INIT` calls the error display unconditionally, which
+is why a Validation rope left alone looks like it is sitting on an error) and
+the closing PROG 77, from MAXERR. Afterwards it sits in `DONE TCF DONE` and
+**our TC TRAP alarm restarts the machine**, which is exactly what that alarm is
+for and means a long run shows the suite running over and over.
+
 **The pulse tables are verified against the gates.** Every subinstruction the
 sequence generator can decode without a Computer Test Set — 29 of them, times
 four branch-register values, times twelve timing pulses, 1392 rows — is read
@@ -87,7 +104,8 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | DSKY — display (channel 10 relay banks, signs, status lights) | Working | `dsky_suite`; Sundial E's V05 N31 R2 01107 matches its own listing |
 | DSKY — lamps and the flash (channel 11, scaler stages 16/17) | Working | `dsky_suite`: the flash runs without the program, and in antiphase with KEY REL |
 | DSKY — keyboard (channels 15/16, KEYRUPT1/2) | Working | `dsky_suite`; a keypress into Luminary 099 lights KEY REL, `CHARIN`'s documented response |
-| DSKY — PRO/STBY key, RESTART and STBY lamps | **Missing** | Start-stop logic rather than channel traffic; see gaps |
+| DSKY — PROCEED key (channel 32, low polarity) | Working | `mit_validation_suite` drives the whole Validation rope through it |
+| DSKY — STBY key, RESTART and STBY lamps | **Missing** | Start-stop logic rather than channel traffic |
 | CDU — angle counters, drive counters, channel 12 discretes | Working | `cdu_suite`; POUT/MOUT now drive, closing the approximation |
 | CDU — coarse align | Working | `imu_suite`: the gimbal moves and the CDU reports it back, with a control |
 | IMU — gyro torquing (channel 14 selection and sign) | Working | `imu_suite`; table 30-5C's selection truth table, including "none" |
@@ -124,14 +142,15 @@ run for 200 000 MCTs (2.34 emulated seconds) from a cold GOJAM:
 | Luminary 131 (Apollo 13/14 LM) | runs, no alarm | blank |
 | Artemis 072 (Apollo 15–17 CM) | runs, no alarm | blank, PROG lit |
 | Zerlina 56 | runs, no alarm | blank, PROG lit |
-| Validation (MIT instruction validation suite) | runs, no alarm | `PROG 00 NOUN 00`, OPR ERR lit |
+| **Validation (MIT instruction validation suite)** | **passes**, then restarts on TC TRAP from its own DONE loop | opening checkpoint, then `PROG 77` |
 | Retread 50 | runs, no alarm | blank |
 | **Sundial E** | runs, no alarm | **`VERB 05 NOUN 31`, `01107` in R2** |
 | Aurora 12 | **RUPT LOCK** between 20 000 and 60 000 MCTs — uncharacterised | blank |
 
 "No alarm" means the machine did not restart itself. It does **not** yet mean
 the ropes are computing correct answers: nothing reads the Validation suite's
-own pass/fail cells yet. Boots are thermometers, not milestones.
+own pass/fail cells yet — except the Validation rope, which now does, and
+passes. Boots are thermometers, not milestones.
 
 Sundial E's display is the exception that carries real weight, because the rope
 says what it should be showing: `ALARM_AND_ABORT.agc` displays `FAILDISP OCT
