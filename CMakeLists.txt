@@ -34,6 +34,7 @@ target_include_directories(unity SYSTEM PUBLIC ext/unity/src)
 # --- First-party targets ------------------------------------------------------
 enable_testing()
 add_subdirectory(src/core)
+add_subdirectory(src/core_block1)
 add_subdirectory(src/frontend/headless)
 add_subdirectory(src/frontend/sdl)
 add_subdirectory(tests)

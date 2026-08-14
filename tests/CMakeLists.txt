@@ -17,6 +17,13 @@ agc_add_suite(cdu_suite)
 agc_add_suite(imu_suite)
 agc_add_suite(telemetry_suite)
 
+# The Block I core is a separate library and a separate machine, so its suite
+# links that instead.
+add_executable(block1_suite block1_suite.c)
+target_link_libraries(block1_suite PRIVATE agc1_core unity)
+agc_set_warnings(block1_suite)
+add_test(NAME block1_suite COMMAND block1_suite)
+
 find_package(Python3 COMPONENTS Interpreter)
 
 # The committed control-pulse tables must stay in step with the reference model
@@ -26,6 +33,14 @@ if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/ext/agcplusplus/src
     add_test(NAME subinst_tables_are_current
              COMMAND ${Python3_EXECUTABLE}
                      ${CMAKE_SOURCE_DIR}/tools/gen_subinst_tables.py --check)
+endif()
+
+# The Block I tables, like the Block II ones, must stay in step with the model
+# they were transcribed from.
+if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/ext/agcplusplus/src/block1/subinstructions.cpp")
+    add_test(NAME block1_tables_are_current
+             COMMAND ${Python3_EXECUTABLE}
+                     ${CMAKE_SOURCE_DIR}/tools/gen_block1_tables.py --check)
 endif()
 
 # The probe regression: self-contained rope images run through the headless

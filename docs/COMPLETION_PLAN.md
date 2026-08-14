@@ -277,9 +277,30 @@ This is what turns "cycle-correct by construction" into a checkable claim.
 
 Explicitly deferred, listed so the plan names everything:
 
-- [ ] Block I. A genuinely different machine (different word length usage,
-      different instruction set, different pulse sequences). Out of scope until
-      Block II is finished; `ext/agcplusplus` models it if it becomes wanted.
+- [x] Block I, now that Block II is finished. A genuinely different machine and
+      a separate core in `src/core_block1`, sharing no code with the Block II
+      one on purpose — parameterising one into the other would compromise the
+      reference core everything else rests on.
+      Eleven order codes decoded from four bits of B, with the extend bit
+      carried as negative overflow in B rather than a flip-flop of its own; LP
+      instead of L; four input and five output registers reached through the
+      central store instead of sixty-four channels and their instructions; one
+      bank register at S = 015; editing registers that shift *on the way
+      through* G, so there are no named shift pulses; memory arriving before T6
+      rather than T4; twenty counters at 034 upwards, six interrupts, and GOJAM
+      at 2030 in stage 2.
+      *Verified:* `block1_suite` (14 tests) — the machine starts where Block I
+      starts, a memory cycle is twelve timing pulses, seven instructions
+      including the end-around carry, the bank and output registers as central
+      store, the editing registers, and a counter request stealing a cycle.
+      `block1_tables_are_current` keeps the 22 generated sequences in step with
+      the model, exactly as its Block II counterpart does.
+      **Worth less than the Block II core, and deliberately so.** There is no
+      Block I memo in `docs/references/`, no Block I gate model in `ext/`, and
+      the Validation rope is a Block II program — so this is transcribed from
+      `ext/agcplusplus` alone, with none of the three independent checks the
+      Block II core has. Said again in `PROJECT_STATUS.md` and in the core's own
+      header, because it is the kind of difference that gets forgotten.
 - [x] A verified fast mode (guide §1). **Done as the guide's other half:**
       squeeze the reference core under the identity harness rather than build a
       second one. Exact-skip scheduling turns out to have nothing to offer this

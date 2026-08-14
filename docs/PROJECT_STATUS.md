@@ -95,6 +95,30 @@ memo, the model and the oracle's 13/13 results. Nor does it cover the involuntar
 counter sequences. And no probe yet reads the Validation rope's own pass/fail
 verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite.
 
+## Block I
+
+`src/core_block1` is a second, separate core for the Block I machine — the one
+that flew unmanned on Apollo 4 and 6. It shares no code with the Block II core:
+they are different computers, and parameterising one into the other would
+compromise the reference core the rest of this project rests on.
+
+| Part | State | Verification |
+|---|---|---|
+| Sequence generator, 22 subinstructions, 51 control pulses | Working | `block1_suite`; `block1_tables_are_current` keeps the generated tables in step |
+| Memory: erasable 0-1777, fixed-fixed 2000-5777, 28 banked | Working | `block1_suite` |
+| Central store: A/Q/Z/LP, four in, five out, the bank register at 015 | Working | `block1_suite` |
+| Editing registers (shift on the way through G) | Working | `block1_suite` |
+| Priority control: 20 counters, 6 interrupts | Working | `block1_suite` |
+| The parity machinery (GP, TP, WP, WP2, RP2) | **Missing** | Left as no-ops, as in the reference model |
+
+**It is worth less than the Block II core, and the difference is not small.**
+The Block II tables are checked against AGC4 Memo #9, against gate netlists
+generated from the original MIT drawings, and against MIT's own validation rope.
+For Block I there is no memo in `docs/references/`, no gate model in `ext/`, and
+the Validation rope is a Block II program — so the Block I core is transcribed
+from `ext/agcplusplus` alone and checked for internal consistency. Anyone
+trusting it should know that is all that stands behind it.
+
 ## Subsystems
 
 | Subsystem | State | Verification |
