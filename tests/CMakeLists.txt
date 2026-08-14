@@ -14,6 +14,7 @@ agc_add_suite(timing_suite)
 agc_add_suite(dsky_suite)
 agc_add_suite(uplink_suite)
 agc_add_suite(cdu_suite)
+agc_add_suite(imu_suite)
 
 find_package(Python3 COMPONENTS Interpreter)
 

@@ -534,23 +534,28 @@ static void p_wovr(agc *m)
  * to is whichever drive counter S is addressing — the sequence generator has no
  * other way to know, and neither have we. A pulse on a counter that is not a
  * CDU drive counter is the gyro's, and is left for the IMU item. */
-static void p_pout(agc *m)
+static void drive_pulse(agc *m, bool positive)
 {
     unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
+
     enum agc_cdu_axis axis = agc_cdu_axis_of_drive_counter(counter);
     if (axis != AGC_CDU_AXES) {
-        agc_cdu_drive(m, axis, true);
+        agc_cdu_drive(m, axis, positive);
+        if (axis <= AGC_CDU_Z) {
+            agc_imu_drive_gimbal(m, (enum agc_imu_axis)axis, positive);
+        }
+        return;
+    }
+
+    /* GYROD's pulses carry only magnitude: which gyro they torque and which way
+     * come from channel 14, so the sign of the pulse itself is not used. */
+    if (counter == AGC_CNT_GYROD) {
+        agc_imu_gyro_pulse(m);
     }
 }
 
-static void p_mout(agc *m)
-{
-    unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
-    enum agc_cdu_axis axis = agc_cdu_axis_of_drive_counter(counter);
-    if (axis != AGC_CDU_AXES) {
-        agc_cdu_drive(m, axis, false);
-    }
-}
+static void p_pout(agc *m) { drive_pulse(m, true); }
+static void p_mout(agc *m) { drive_pulse(m, false); }
 
 static void p_zout(agc *m)
 {

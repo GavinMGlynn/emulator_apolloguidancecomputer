@@ -11,6 +11,7 @@ void agc_init(agc *m)
     agc_dsky_reset(&m->dsky);
     agc_uplink_reset(&m->uplink);
     agc_cdu_reset(&m->cdu);
+    agc_imu_reset(&m->imu);
     agc_cpu_start(m);
 }
 

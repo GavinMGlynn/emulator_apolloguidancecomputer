@@ -11,6 +11,7 @@ add_library(agc_core STATIC
     io/uplink.c
     memory/memory.c
     peripherals/cdu.c
+    peripherals/imu.c
     timing/scaler.c)
 
 target_include_directories(agc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

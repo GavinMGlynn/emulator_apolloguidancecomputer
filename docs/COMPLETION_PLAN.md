@@ -157,8 +157,27 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       because acting on it means moving a gimbal — the drive pulses are counted
       and exposed rather than fed back into an angle. That loop closes with the
       IMU item below, which is where the plant model belongs.
-- [ ] **IMU / PIPA / gyro torquing.**
-      *Verification:* gyro pulse counts per channel-14 command.
+- [~] **IMU / PIPA / gyro torquing.**
+      *Done:* gyro torquing — the program loads GYROD, picks an axis and a sign
+      in channel 14 and the hardware walks the counter down at 3.2 kHz, one
+      torque pulse per DINC; the three PIPAs, one PINC/MINC per velocity
+      increment; and coarse align, which is the one path where the computer
+      moves the platform rather than measuring it — the drive pulses reach the
+      gimbal and the CDU reports the movement back, so the AGC's own angle
+      counters follow what it commanded.
+      *Verified:* `imu_suite` (10 tests) — gyro pulse counts per channel-14
+      command, table 30-5C's whole selection truth table including "none", the
+      sign bit, PIPA increments in both directions, a lost velocity increment,
+      and coarse align with a control that shows the platform staying put
+      without it.
+      *Left:* no dynamics. Nothing integrates an acceleration, moves a gimbal
+      at a rate or drifts a gyro — a frontend says the vehicle moved and this
+      turns that into the pulses the hardware would send. The AGC cannot tell
+      the difference, because pulses are all it ever sees, but a closed-loop
+      flight would need the plant.
+      *Verification for the rest:* a rope commanded to a known attitude through
+      coarse align, with the CDU counters read back and compared against the
+      commanded angle.
 - [~] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
       *Done:* the uplink, above — a known word arrives in INLINK and raises
       UPRUPT when its flag bit shifts out.
