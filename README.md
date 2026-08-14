@@ -1,7 +1,7 @@
 # agc — a cycle-correct Apollo Guidance Computer
 
 A Block II Apollo Guidance Computer emulated at the **control-pulse level**, in
-C23. The machine cycle here is the AGC's own: one `agc_tick()` is one timing
+C17. The machine cycle here is the AGC's own: one `agc_tick()` is one timing
 pulse of the 1.024 MHz clock, twelve of them make the 11.71875 µs Memory Cycle
 Time, and at each one the sequence generator asserts the control pulses that
 AGC4 Memo #9 says it should. There is no instruction-level shortcut anywhere in

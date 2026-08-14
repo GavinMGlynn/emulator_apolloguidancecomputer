@@ -11,7 +11,8 @@ spelled out.
 
 ## Phase 0 — Foundations ✅
 
-- [x] Tree, CMake/Ninja/Clang C23, presets, strict warnings + `-Werror`.
+- [x] Tree, CMake/Ninja/Clang C17, presets, strict warnings + `-Werror`.
+      (C23 at first; lowered once CI showed the toolchains only half-have it.)
       *Verified:* debug and release both build clean.
 - [x] Four-platform CI (Linux, Rocky, macOS, Windows) running both build types.
       *Verified:* **green on all four**, as of the "Fix the Rocky CI job"
