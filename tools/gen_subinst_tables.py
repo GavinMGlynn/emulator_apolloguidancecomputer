@@ -351,6 +351,18 @@ def report_divergences(parsed, memo) -> list[str]:
 # --- Emission -----------------------------------------------------------------
 
 
+# Which decode lines each subinstruction raises. TC0 and TCF0 are the transfer
+# of control the TC TRAP alarm watches; MP3 raises MP3A, the second inhibit on
+# the end-around carry.
+def decode_flags(name: str) -> str:
+    flags = []
+    if name in ("TC0", "TCF0"):
+        flags.append("AGC_SEQ_TRANSFER")
+    if name == "MP3":
+        flags.append("AGC_SEQ_MP3")
+    return " | ".join(flags) if flags else "0"
+
+
 def emit(parsed, dispatch) -> str:
     widest = max(
         len(ps) for rows in parsed.values() for variants in rows.values() for _, _, ps in variants
@@ -402,7 +414,8 @@ def emit(parsed, dispatch) -> str:
         if fn not in parsed:
             continue
         lines.append(
-            f'    {{ "{name}", {stage}, {"true" if ext else "false"}, 0{mask:02o}, 0{op:03o}, '
+            f'    {{ "{name}", {decode_flags(name)}, {stage}, '
+            f'{"true" if ext else "false"}, 0{mask:02o}, 0{op:03o}, '
             f"{fn}_rows, (uint8_t)(sizeof {fn}_rows / sizeof *{fn}_rows) }},"
         )
         seen.add(fn)
@@ -418,8 +431,8 @@ def emit(parsed, dispatch) -> str:
     for fn in sorted(set(parsed) - seen):
         lines.append(
             f"const agc_subinst agc_subinst_{fn} = "
-            f'{{ "{fn.upper()}", 0, false, 0, 0, {fn}_rows, '
-            f"(uint8_t)(sizeof {fn}_rows / sizeof *{fn}_rows) }};"
+            f'{{ "{fn.upper()}", {decode_flags(fn.upper())}, 0, false, 0, 0, '
+            f"{fn}_rows, (uint8_t)(sizeof {fn}_rows / sizeof *{fn}_rows) }};"
         )
     lines.append("")
     return "\n".join(lines)

@@ -172,8 +172,14 @@ register placement all check out at once, against the source of the program
 doing the displaying. (The alarm is correct behaviour: a rope started cold has
 no valid phase table.)
 
-Performance, release build, this host: 200 000 MCTs in ~0.35 s, i.e. roughly
-6.7× real time for a strictly per-timing-pulse interpreter. No fast mode is
+Performance, release build, this host: **about 79× real time** for a strictly
+per-timing-pulse interpreter — 5 million MCTs, 59 seconds of emulated time, in
+0.74 s. That is 1.37× faster than it was, from removing dispatch overhead only:
+decode flags where the TC TRAP check had been comparing subinstruction names
+with `strcmp` (39% of run time), idle-skip guards on the four peripherals, and a
+countdown where the scaler had a modulo. Byte-identical throughout — the probe
+goldens and all ten rope hashes are the identity harness, and that is what they
+were built for. FINDINGS #77-79. No separate fast mode is
 needed or planned yet.
 
 ## Deliberate approximations

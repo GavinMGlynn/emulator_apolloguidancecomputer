@@ -460,3 +460,41 @@ between. All 36 864 words agree.
 | # | Finding |
 |---|---|
 | 76 | **The PARITY FAIL alarm proves itself on real damage.** Retread 50 booted from the B1 module *as dumped while defective* raises PARITY FAIL; booted from the same module after repair it does not, and gets far enough to trip TC TRAP instead. 702 of that module's words fail odd parity and every other dumped Block II module is clean. Nobody simulated the fault: it is a physical defect in an article from 1966, and the alarm that exists to catch it catches it. |
+
+## Making the reference core faster without changing it
+
+The guide's §1 design for a fast mode is **exact-skip scheduling**: subsystems
+expose `next_event()` and `skip(n)`, and the scheduler runs the machine to the
+nearest event and catches everyone up arithmetically. It is the right design for
+a PlayStation, and it has almost nothing to offer here, for a reason worth
+stating plainly:
+
+| # | Finding |
+|---|---|
+| 77 | **The AGC has no inert spans.** Its CPU executes a subinstruction every single MCT — there is no halt, no wait state and no idle loop that the hardware itself skips; even a parked program is running TCF at full rate, which is why TC TRAP exists. So there is no span across which any subsystem could be caught up arithmetically. What a per-cycle interpreter of this machine spends is dispatch overhead, exactly as §1 says, and that is where the whole of the speed is. |
+
+Which the profiler had to say, because intuition was wrong about it twice:
+
+| # | Finding |
+|---|---|
+| 78 | **39% of run time was `strcmp`.** The TC TRAP check compared the running subinstruction's *name* against "TC0" and "TCF0" — twice per timing pulse, twelve times per MCT. TC0/TCF0 and MP3A are decode lines in the hardware, not strings, so they moved into the table as flags where they belong. Worth 1.13x on its own. |
+| 79 | **Two "obvious" optimizations measured worse or not at all.** `__attribute__((flatten))` on the run loops: no measurable change, because LTO already inlines them. Stopping the row scan early once past the current timing pulse — the sequences are sorted, so it looks free — came out *slower*, because the extra branch per row costs more than it saves on a five-to-thirteen-row sequence that the predictor was already walking happily. Both were reverted. Keeping a change that measures as nothing is how a core accretes complexity it cannot justify. |
+
+What did work, and what it cost:
+
+| Change | Time for 5 M MCTs | Cumulative |
+|---|---|---|
+| baseline | 1.01 s | — |
+| decode flags instead of `strcmp` | 0.89 s | 1.13x |
+| idle-skip guards on the four peripherals, and a scaler countdown instead of a modulo | 0.74 s | **1.37x** |
+
+**1.37x, and byte-identical**: the probe goldens and all ten rope state hashes
+are unchanged, which is the whole point of having built them first. The machine
+now runs at about **79 times real time** on this host, from 58.
+
+The idle-skip guards are the interesting half, and they are the one place the
+§1 design does apply: a machine with no ground station, no radar and nobody at
+the keyboard has four peripherals with provably nothing to do, and a call per
+timing pulse to establish that is pure overhead. Naming the exact idle state of
+each is precisely what the guide asks for — it is only the *CPU* that never has
+one.

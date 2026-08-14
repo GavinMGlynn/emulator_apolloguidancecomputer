@@ -63,8 +63,20 @@ typedef struct agc_pulse_row {
     uint8_t pulse[AGC_MAX_PULSES_PER_TIMEPULSE];
 } agc_pulse_row;
 
+/* Decode lines the rest of the machine reads directly. The sequence generator
+ * has these as signals off the SQ register — MP3A is one of them (FINDINGS #49)
+ * and so is the transfer-of-control pair the TC TRAP alarm watches — so they
+ * belong in the table beside the sequence rather than being recovered by
+ * comparing names. They were strings once, and two strcmps per timing pulse
+ * came to 39% of run time. */
+enum agc_subinst_flags {
+    AGC_SEQ_TRANSFER = 1u << 0, /* TC0 or TCF0: what TC TRAP counts */
+    AGC_SEQ_MP3      = 1u << 1, /* MP3A, which inhibits the end-around carry */
+};
+
 typedef struct agc_subinst {
     const char *name;
+    uint8_t flags;
     uint8_t stage;    /* required value of ST */
     bool extend;      /* required value of the EXTEND flip-flop */
     uint8_t sq_mask;  /* which SQ bits the opcode is decoded from */

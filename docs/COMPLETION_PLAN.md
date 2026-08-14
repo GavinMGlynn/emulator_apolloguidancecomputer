@@ -280,10 +280,17 @@ Explicitly deferred, listed so the plan names everything:
 - [ ] Block I. A genuinely different machine (different word length usage,
       different instruction set, different pulse sequences). Out of scope until
       Block II is finished; `ext/agcplusplus` models it if it becomes wanted.
-- [ ] A verified fast mode (guide §1). **Not needed:** the reference core
-      already runs ~6.7× real time on a modern host, and the guide's own advice
-      is not to compromise the reference core for speed that is not required.
-      Revisit only if a full mission-duration run becomes a goal.
+- [x] A verified fast mode (guide §1). **Done as the guide's other half:**
+      squeeze the reference core under the identity harness rather than build a
+      second one. Exact-skip scheduling turns out to have nothing to offer this
+      machine — the AGC's CPU executes a subinstruction every MCT, so there is
+      no inert span to skip across (FINDINGS #77) — while dispatch overhead had
+      a great deal.
+      *Verified:* **1.37× and byte-identical**, with the probe goldens and all
+      ten rope state hashes unchanged; about **79× real time**, from 58. The
+      profiler found 39% of run time going to `strcmp` in the TC TRAP check, and
+      two optimizations that looked obvious measured worse or not at all and
+      were reverted. FINDINGS #77-79.
 
 ---
 

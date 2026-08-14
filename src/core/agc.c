@@ -8,6 +8,7 @@ void agc_init(agc *m)
     memset(m, 0, sizeof *m);
     agc_memory_clear(&m->mem);
     agc_scaler_reset(&m->scaler);
+    m->scaler_countdown = AGC_SCALER_DIVISOR;
     agc_dsky_reset(&m->dsky);
     agc_uplink_reset(&m->uplink);
     agc_cdu_reset(&m->cdu);
@@ -38,23 +39,42 @@ void agc_tick(agc *m)
     /* TC TRAP watches for a program that only ever executes TC and TCF. The
      * "ended" half of the test fires at T4 of any MCT that is neither a
      * transfer of control nor a stolen counter cycle. */
-    const char *name = m->cpu.subinst ? m->cpu.subinst->name : "";
-    if (strcmp(name, "TC0") == 0 || strcmp(name, "TCF0") == 0) {
+    const agc_subinst *si = m->cpu.subinst;
+    if (si && (si->flags & AGC_SEQ_TRANSFER)) {
         m->scaler.tc_started = true;
     } else if (m->cpu.timepulse == 4 && !m->cpu.inkl) {
         m->scaler.tc_ended = true;
     }
 
-    /* The scaler runs at a tenth of the timing-pulse rate. */
-    if (m->timepulses % AGC_SCALER_DIVISOR == 0) {
+    /* The scaler runs at a tenth of the timing-pulse rate. Counted down rather
+     * than derived with a modulo: this is on the hottest path in the emulator
+     * and a division there is not free. */
+    if (--m->scaler_countdown == 0) {
+        m->scaler_countdown = AGC_SCALER_DIVISOR;
         agc_scaler_tick(m);
+
+        /* The DSKY's flash phase is a function of scaler stages 16 and 17, so
+         * it can only change here. Sampling it every timing pulse was copying
+         * the same value nine times out of ten. */
+        m->dsky.flash = m->scaler.flash_on;
     }
 
-    /* After the scaler, so the DSKY samples this pulse's flash phase. */
-    agc_dsky_tick(m);
-    agc_uplink_tick(m);
-    agc_cdu_tick(m);
-    agc_telemetry_tick(m);
+    /* Idle-skip guards, naming the exact states in which each peripheral has
+     * nothing to do. All four are usually idle — a machine with no ground
+     * station, no radar and nobody at the keyboard is the normal case — and a
+     * call per timing pulse to establish that is pure overhead.
+     *
+     * agc_cdu_tick is absent entirely: it does nothing at all, on purpose, and
+     * why is worth reading (peripherals/cdu.c). */
+    if (m->dsky.hold_main | m->dsky.hold_nav) {
+        agc_dsky_tick(m);
+    }
+    if (m->uplink.pending_bits || m->uplink.since_last < AGC_UPLINK_BIT_PULSES) {
+        agc_uplink_tick(m);
+    }
+    if (m->telemetry.downlink_rate_hz || m->telemetry.radar_pending_bits) {
+        agc_telemetry_tick(m);
+    }
 }
 
 void agc_tick_mct(agc *m)

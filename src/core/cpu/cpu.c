@@ -389,7 +389,7 @@ static void after_timepulse(agc *m)
          * ahead of MP3 leaves SQ and the stage counter alone and so runs with
          * the carry still inhibited. Deliberately not cleared where priority
          * control injects an involuntary sequence. */
-        c->mp3a = strcmp(next->name, "MP3") == 0;
+        c->mp3a = (next->flags & AGC_SEQ_MP3) != 0;
     }
 
     c->timepulse = c->timepulse < 12 ? (uint8_t)(c->timepulse + 1) : 1;

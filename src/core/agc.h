@@ -43,8 +43,10 @@ typedef struct agc {
     agc_telemetry telemetry;
 
     /* Timing pulses since reset. Divided by 12 this is MCTs; the scaler is
-     * clocked from it every AGC_SCALER_DIVISOR pulses. */
+     * clocked from it every AGC_SCALER_DIVISOR pulses, counted down here
+     * rather than derived, because agc_tick is the hottest path there is. */
     uint64_t timepulses;
+    unsigned scaler_countdown;
 
     /* Set when a hardware alarm fires. The frontend decides what to do about
      * it; the core just records the reason in channel 77 and GOJAMs. */
