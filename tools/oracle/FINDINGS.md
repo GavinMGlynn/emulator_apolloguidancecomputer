@@ -321,3 +321,35 @@ cross-point output at all (it lives in A15; FINDINGS #16).
 | 51 | **A subset of a netlist is not the netlist.** Open-drain nets are wired-ANDs whose pull-up sits on whichever module had room — `WA_n` is pulled up on A6, `Z16_n` over on A11. Loading four modules picks up drivers whose pull-up is out of scope, and such a net latches low the first time anything pulls it, which is how DAS1 first appeared to assert `Z15`, `Z16` and `L16` that no source prints. The simulator now supplies the missing pull-up explicitly. |
 | 52 | **A zero-timing evaluation has no opinion about a latch.** NEAC, PIFL and GNHNC are SR latches; with neither term asserted they hold state in hardware and ring in the model. Rather than hide it, `settle()` returns the ringing set and `read()` refuses to report a value from it — so a latch can never be mistaken for a control pulse. Both memo pulses that *are* latches are reported by their set term instead. |
 | 53 | **The idle divide counter leaks.** The grey counter in A4 free-runs with no divide in progress, and its arbitrary state reached the cross-point matrix as a phantom `WB` on DAS1 T3. The bench holds the divide conditions quiet for the non-divide sequences it probes; probing the DV sequences needs that counter driven stage by stage, which it does not attempt. |
+
+## The DSKY
+
+Five separate encodings, none of them in one place. Recorded here with the
+source that settled each, because the temptation with a display is to copy a
+table from another emulator and never learn where it came from.
+
+| # | Question | Answer | Source |
+|---|---|---|---|
+| 54 | What is in a channel 10 relay word? | Bits 15-12 a bank number (octal 00-14), bits 11-1 the eleven relays of that bank. Banks 00-10 drive the three five-digit registers, 11-13 the NOUN, VERB and PROGRAM displays, 14 the status lights. | **Information Series #30**, table 30-5 and paragraphs 30-77 / 30-145A-C, read off the rendered page rather than an OCR extraction. |
+| 55 | Which relay code is which digit? | `0->025 1->003 2->031 3->033 4->017 5->036 6->034 7->023 8->035 9->037`, blank 000. | **MIT's own flight software**: `RELTAB` in Luminary 099's fixed-fixed constant pool is exactly this table. Confirmed independently against ext/virtualagc's seven-segment artwork, whose files are named by relay code — the two agree on all eleven. |
+| 56 | Which five-bit code is which key? | `1-7` are themselves, `010`/`011` are 8 and 9, `020` is 0, `021` VERB, `022` RSET, `031` KEY REL, `032` +, `033` -, `034` ENTR, `036` CLR, `037` NOUN. | **MIT again**: the `CHARIN` dispatch table in PINBALL, where every entry carries a comment naming its key, and everything unlisted falls through to `CHARALRM`. |
+| 57 | Where does the flash come from? | Not from software at all. Module A24 gate U24025 forms `FLASH = NOR(FS17, FS16)` straight off the scaler; module A16 gate U16047 gates the VERB/NOUN displays with it and the KEY REL and OPR ERR lamps with its *complement*. | The gates. Our scaler already computed the same term, which is a pleasant confirmation from the other direction. |
+| 58 | The bank field is four bits but only thirteen banks exist. | Codes 15-17 address no relays and do nothing. | Found by booting the Validation rope, which writes them: our first version indexed a 13-entry array with a 4-bit field and corrupted the heap on the first run. The rope regression caught it within a minute of the module existing. |
+
+### Reading a rope's display back
+
+The check the plan asked for, and it closed better than expected. **Sundial E**
+puts up `VERB 05 NOUN 31` with `01107` in R2. Its own listing says why:
+`ALARM_AND_ABORT.agc` displays `FAILDISP OCT 00531` — which reads V05 N31 — and
+`FRESH_START_AND_RESTART.agc` sets alarm code `1107` with the comment "SET
+ADDITIONAL FAILURE TO SHOW PHASE TABLE DISAGREEMENT (WILL BE DISPLAYED **IN
+R2**)". Bank assignment, digit codes and register placement all confirmed at
+once, against the source of the program doing the displaying.
+
+(The alarm itself is correct behaviour: a rope started cold has no valid phase
+table, and saying so is what that code is for.)
+
+| # | Finding |
+|---|---|
+| 59 | **The flight ropes display nothing until they are talked to.** Luminary 099, Comanche 055, Artemis 072 and Zerlina 56 all run DSPOUT — 208 relay words in 23 emulated seconds, cycling every bank — and every one of them is blank, with the PROG light on. A keypress does reach the software: pressing VERB lights KEY REL, which is `CHARIN`'s documented response to a key arriving while a flashing display is pending. Whether these ropes should reach a V37 display from a cold start without further input is a question about the ropes, not about the DSKY, and is a plan item rather than a fix. |
+| 60 | **A restart leaves the display standing.** GOJAM clears the output channels, so channel 11's lamps go out, but channel 10 only ever *addresses* a relay bank — clearing it selects bank 0 and resets nothing. The latching relays keep showing whatever they held. That asymmetry is free if the DSKY watches the same channel writes the machine makes, and wrong in both directions if it is modelled as a decoded display that gets cleared. |

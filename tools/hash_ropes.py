@@ -50,7 +50,8 @@ def run(exe: str, rope: Path, mct: int) -> tuple[str, bool]:
     """Return (hash, alarmed) for one rope."""
     out = subprocess.run(
         [exe, "--rope", str(rope), "--mct", str(mct),
-         "--dump-state", "--dump-mem", f"0:{ERASABLE_WORDS}", "--dump-counters"],
+         "--dump-state", "--dump-mem", f"0:{ERASABLE_WORDS}", "--dump-counters",
+         "--dump-dsky"],
         capture_output=True, text=True)
     if out.returncode != 0:
         raise SystemExit(f"{rope.name}: emulator exited {out.returncode}\n{out.stderr}")

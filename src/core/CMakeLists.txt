@@ -5,6 +5,7 @@ add_library(agc_core STATIC
     cpu/pulses.c
     cpu/subinst.c
     cpu/subinst_tables.c
+    dsky/dsky.c
     io/channels.c
     io/counters.c
     memory/memory.c

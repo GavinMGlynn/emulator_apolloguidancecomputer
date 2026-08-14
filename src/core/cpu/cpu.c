@@ -75,6 +75,11 @@ void agc_cpu_write_channel(agc *m, unsigned n, agc_word v)
     t |= (t & AGC_BIT(16)) >> 1;
     t &= ~(unsigned)AGC_BIT(16);
     agc_channel_write(&m->channels, n, agc_w(t));
+
+    /* The DSKY hangs off the channel write, not off a poll: its relays latch
+     * when the word is written and hold until the next word addresses that
+     * bank. */
+    agc_dsky_channel_write(m, n, agc_w(t));
 }
 
 void agc_cpu_queue_gojam(agc_cpu *cpu)
@@ -118,6 +123,13 @@ static void gojam(agc *m)
     static const unsigned cleared[] = { 005, 006, 010, 011, 012, 013, 014, 034, 035 };
     for (size_t i = 0; i < sizeof cleared / sizeof *cleared; ++i) {
         agc_channel_write(&m->channels, cleared[i], 0);
+        /* The DSKY sees these too, and the asymmetry is the point: clearing
+         * channel 11 puts the lamps out, because they are driven straight off
+         * its flip-flops, while clearing channel 10 only addresses relay bank
+         * 0 and leaves the latching display relays holding whatever they were
+         * showing. A restart really does leave the last display on the panel
+         * until the software rewrites it. */
+        agc_dsky_channel_write(m, cleared[i], 0);
     }
     agc_channel_write(&m->channels, 033,
                       agc_w(agc_channel_read(&m->channels, 033) & ~(unsigned)AGC_BIT(11)));

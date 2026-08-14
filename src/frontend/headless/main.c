@@ -26,6 +26,11 @@ static void usage(const char *argv0)
             "  --dump-mem A[:LEN]   dump LEN (default 1) erasable words from octal A\n"
             "  --dump-counters      print the counter cells and interrupt requests\n"
             "  --dump-channels      print every I/O channel\n"
+            "  --dump-dsky          print the DSKY display when the run ends\n"
+            "  --trace-dsky         print the DSKY display every time it changes\n"
+            "  --press KEY:MCT      press a DSKY key at the given MCT. KEY is a\n"
+            "                       digit, V, N, E (enter), R (reset), C (clear),\n"
+            "                       K (key release), + or -. Repeatable.\n"
             "  --sentinel A         watch octal erasable cell A; report the MCT at\n"
             "                       which it first becomes non-zero. Repeatable.\n"
             "                       The run stops once every sentinel has fired.\n"
@@ -40,6 +45,45 @@ static void usage(const char *argv0)
 
 #define MAX_DUMPS 32
 #define MAX_SENTINELS 64
+#define MAX_PRESSES 64
+
+/* A scripted keypress: which key, and the MCT to press it at. Menus are driven
+ * this way rather than from a clock, so a run is reproducible. */
+struct press {
+    enum agc_dsky_key key;
+    unsigned long long mct;
+    bool done;
+};
+
+/* One character per key, chosen to read like the panel: the digits, then V, N,
+ * E(nter), R(eset), C(lear), K(ey release), + and -. */
+static bool parse_press(const char *spec, struct press *out)
+{
+    if (!spec) {
+        return false;
+    }
+    const char *colon = strchr(spec, ':');
+    if (!colon || colon == spec) {
+        return false;
+    }
+    static const struct { char c; enum agc_dsky_key key; } keys[] = {
+        { '0', AGC_KEY_0 }, { '1', AGC_KEY_1 }, { '2', AGC_KEY_2 },
+        { '3', AGC_KEY_3 }, { '4', AGC_KEY_4 }, { '5', AGC_KEY_5 },
+        { '6', AGC_KEY_6 }, { '7', AGC_KEY_7 }, { '8', AGC_KEY_8 },
+        { '9', AGC_KEY_9 }, { 'V', AGC_KEY_VERB }, { 'N', AGC_KEY_NOUN },
+        { 'E', AGC_KEY_ENTR }, { 'R', AGC_KEY_RSET }, { 'C', AGC_KEY_CLR },
+        { 'K', AGC_KEY_KEYREL }, { '+', AGC_KEY_PLUS }, { '-', AGC_KEY_MINUS },
+    };
+    for (size_t i = 0; i < sizeof keys / sizeof *keys; ++i) {
+        if (keys[i].c == spec[0] && colon == spec + 1) {
+            out->key = keys[i].key;
+            out->mct = strtoull(colon + 1, NULL, 0);
+            out->done = false;
+            return true;
+        }
+    }
+    return false;
+}
 
 struct dump {
     unsigned addr;
@@ -84,6 +128,9 @@ int main(int argc, char **argv)
     unsigned long pulses = 0;
     bool trace = false, trace_mct = false, dump_state = false;
     bool dump_counters = false, dump_channels = false;
+    bool dump_dsky = false, trace_dsky = false;
+    struct press presses[MAX_PRESSES];
+    size_t press_count = 0;
     struct dump dumps[MAX_DUMPS];
     size_t dump_count = 0;
     struct sentinel sentinels[MAX_SENTINELS];
@@ -120,6 +167,17 @@ int main(int argc, char **argv)
             dump_counters = true;
         } else if (strcmp(a, "--dump-channels") == 0) {
             dump_channels = true;
+        } else if (strcmp(a, "--dump-dsky") == 0) {
+            dump_dsky = true;
+        } else if (strcmp(a, "--trace-dsky") == 0) {
+            trace_dsky = true;
+        } else if (strcmp(a, "--press") == 0) {
+            if (press_count == MAX_PRESSES || !parse_press(argv[++i], &presses[press_count])) {
+                fprintf(stderr, "--press wants KEY:MCT, e.g. V:1200\n");
+                free(m);
+                return 2;
+            }
+            press_count++;
         } else if (strcmp(a, "--sentinel") == 0) {
             unsigned addr = 0;
             if (sentinel_count == MAX_SENTINELS) {
@@ -212,9 +270,26 @@ int main(int argc, char **argv)
     }
 
     char line[256];
+    char dsky_line[256], dsky_prev[256] = "";
     size_t fired = 0;
     for (unsigned long i = 0; i < pulses; ++i) {
+        for (size_t k = 0; k < press_count; ++k) {
+            if (!presses[k].done
+                && m->timepulses / AGC_TIMEPULSES_PER_MCT >= presses[k].mct) {
+                presses[k].done = true;
+                agc_dsky_press(m, presses[k].key, 0);
+            }
+        }
         agc_tick(m);
+        if (trace_dsky) {
+            agc_dsky_format(&m->dsky, dsky_line, sizeof dsky_line);
+            if (strcmp(dsky_line, dsky_prev) != 0) {
+                printf("DSKY %llu  %s\n",
+                       (unsigned long long)(m->timepulses / AGC_TIMEPULSES_PER_MCT),
+                       dsky_line);
+                snprintf(dsky_prev, sizeof dsky_prev, "%s", dsky_line);
+            }
+        }
         if (trace || (trace_mct && m->cpu.timepulse == 1)) {
             agc_format_state(m, line, sizeof line);
             printf("%s\n", line);
@@ -260,6 +335,17 @@ int main(int argc, char **argv)
                 break;
             }
             printf("E %04o %06o\n", addr, m->mem.erasable[addr]);
+        }
+    }
+
+    if (dump_dsky) {
+        agc_dsky_format(&m->dsky, dsky_line, sizeof dsky_line);
+        printf("DSKY %s\n", dsky_line);
+        printf("DSKY relay-writes %llu\n",
+               (unsigned long long)m->dsky.relay_writes);
+        printf("DSKY lamps %06o status %06o\n", m->dsky.lamps, m->dsky.status);
+        for (unsigned b = 0; b < AGC_DSKY_BANKS; ++b) {
+            printf("DSKY relay %02o %04o\n", b, m->dsky.relay[b]);
         }
     }
 

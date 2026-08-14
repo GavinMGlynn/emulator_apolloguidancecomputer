@@ -112,12 +112,21 @@ This is what turns "cycle-correct by construction" into a checkable claim.
 
 ## Phase 3 — Peripherals
 
-- [ ] **DSKY.** Channel 10 display decode (the digit-group encoding), channel 11
-      lamps, channels 15/16 keyboard input, KEYRUPT, the verb/noun flash driven
-      from scaler stages 16–17.
-      *Verification:* a rope's startup display read out of the channel traffic
-      and compared against the listing's expected V/N; scripted key presses at
-      given MCTs in the headless frontend.
+- [x] **DSKY.** Channel 10 relay words (thirteen banks of latching relays, not a
+      decoded display), channel 11 lamps, relay bank 14's status lights,
+      channels 15/16 keyboard input, KEYRUPT1/2, and the flash — which turns out
+      not to be software at all but `NOR(FS17, FS16)` off the scaler, gating the
+      VERB/NOUN displays in antiphase with the KEY REL and OPR ERR lamps.
+      *Verified:* `dsky_suite` (19 tests) pins every encoding against the source
+      that settled it, and **Sundial E displays `VERB 05 NOUN 31` with `01107`
+      in R2** — matching its own listing's `FAILDISP OCT 00531` and the comment
+      on alarm code 1107, "WILL BE DISPLAYED IN R2". `--press KEY:MCT` drives
+      the keyboard from the headless frontend and `--dump-dsky` / `--trace-dsky`
+      read the panel. Detail in `PROJECT_STATUS.md`; encodings and sources in
+      FINDINGS #54-60.
+      *Tails:* the PRO/STBY key and the hardware-driven RESTART and STBY lamps
+      are not modelled (they are start-stop logic, not channel traffic); neither
+      is the second DSKY, which sees identical relay words.
 - [ ] **Serial counters SHINC/SHANC**, closing the dropped-request approximation.
       *Verification:* a probe shifting a known word into INLINK and reading it
       back; the counter-request path no longer silently discards.
@@ -182,9 +191,14 @@ Recorded as found, per the working conventions.
 - [ ] `--sentinel` fires on "first non-zero", so a probe cannot mark a moment
       with a zero value. Fine for every probe so far; document or widen it
       before one needs to.
-- [ ] `AGC_CHANNEL_COUNT` is 64; the DSKY protocol uses fictitious channel 0163
-      for lamp state. Decide whether that lives in the core or the frontend
-      before the DSKY lands.
+- [x] `AGC_CHANNEL_COUNT` is 64; the DSKY protocol uses fictitious channel 0163
+      for lamp state. **Resolved: the frontend's problem, not the core's.**
+      0163 is an invention of yaAGC's socket protocol, used to carry the lamps
+      the DSKY itself latches or flashes (KEY REL, OPR ERR, RESTART, STBY)
+      rather than anything the AGC addresses. The core exposes `agc_dsky` state
+      structurally — including the flash phase — so a frontend speaking that
+      protocol can synthesise 0163 without a fictitious address existing inside
+      the machine.
 - [ ] The unimplemented-subinstruction fallback in `cpu.c` silently substitutes
       STD2. Once the probe suite exists it should be a hard failure instead —
       every reachable (SQ, ST, EXTEND) triple is in the table, so hitting it is
@@ -202,6 +216,14 @@ Recorded as found, per the working conventions.
       (FINDINGS #53). Covering DV0-DV7 needs that counter driven stage by stage.
       *Verification:* the same 12-pulse timeline per divide stage, diffed against
       `subinst_tables.c` like the other 29.
+- [ ] **The flight ropes reach no display from a cold start.** Luminary 099,
+      Comanche 055, Artemis 072 and Zerlina 56 cycle every relay bank through
+      DSPOUT and write blanks, with the PROG light on; keypresses do reach
+      `CHARIN` (pressing VERB lights KEY REL, its documented response). Sundial E
+      and Validation both display. Characterise before assuming it is ours —
+      FINDINGS #59.
+      *Verification:* either a listing-backed explanation of what these ropes
+      wait for, or the fix with the probe that proves it.
 - [ ] **`mp3a` during a stolen MCT is unverified.** MP3A is a decode line, so a
       counter sequence servicing a request between MP1 and MP3 runs with the
       end-around carry still inhibited (FINDINGS #49). That falls out of the

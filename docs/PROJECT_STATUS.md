@@ -83,7 +83,10 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | Priority control — interrupts (vectoring, KRPT, RESUME, no nesting) | Working | Exercised by every rope boot; `cpu_suite` covers INHINT/RELINT |
 | Priority control — serial counters (SHINC, SHANC) | **Missing** | See gaps |
 | I/O channels (aliasing, inverted channels, edge detection) | Working, partial | `timing_suite` uses channel 13; no peripheral consumes the outputs yet |
-| DSKY | **Missing** | — |
+| DSKY — display (channel 10 relay banks, signs, status lights) | Working | `dsky_suite`; Sundial E's V05 N31 R2 01107 matches its own listing |
+| DSKY — lamps and the flash (channel 11, scaler stages 16/17) | Working | `dsky_suite`: the flash runs without the program, and in antiphase with KEY REL |
+| DSKY — keyboard (channels 15/16, KEYRUPT1/2) | Working | `dsky_suite`; a keypress into Luminary 099 lights KEY REL, `CHARIN`'s documented response |
+| DSKY — PRO/STBY key, RESTART and STBY lamps | **Missing** | Start-stop logic rather than channel traffic; see gaps |
 | CDU / IMU / gyro / PIPA | **Missing** | — |
 | Uplink / downlink / radar | **Missing** | — |
 | Headless frontend | Working | Used for every rope boot above |
@@ -106,22 +109,29 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 Nine ropes assembled from the original listings by `tools/build_ropes.sh`, each
 run for 200 000 MCTs (2.34 emulated seconds) from a cold GOJAM:
 
-| Rope | Result |
-|---|---|
-| Luminary 099 (Apollo 11 LM) | runs, no alarm |
-| Comanche 055 (Apollo 11 CM) | runs, no alarm |
-| Luminary 131 (Apollo 13/14 LM) | runs, no alarm |
-| Artemis 072 (Apollo 15–17 CM) | runs, no alarm |
-| Zerlina 56 | runs, no alarm |
-| Validation (MIT instruction validation suite) | runs, no alarm |
-| Retread 50 | runs, no alarm |
-| Sundial E | runs, no alarm |
-| Aurora 12 | **RUPT LOCK** between 20 000 and 60 000 MCTs — uncharacterised |
+| Rope | Result | DSKY |
+|---|---|---|
+| Luminary 099 (Apollo 11 LM) | runs, no alarm | blank, PROG lit; drives every relay bank |
+| Comanche 055 (Apollo 11 CM) | runs, no alarm | blank, PROG lit |
+| Luminary 131 (Apollo 13/14 LM) | runs, no alarm | blank |
+| Artemis 072 (Apollo 15–17 CM) | runs, no alarm | blank, PROG lit |
+| Zerlina 56 | runs, no alarm | blank, PROG lit |
+| Validation (MIT instruction validation suite) | runs, no alarm | `PROG 00 NOUN 00`, OPR ERR lit |
+| Retread 50 | runs, no alarm | blank |
+| **Sundial E** | runs, no alarm | **`VERB 05 NOUN 31`, `01107` in R2** |
+| Aurora 12 | **RUPT LOCK** between 20 000 and 60 000 MCTs — uncharacterised | blank |
 
 "No alarm" means the machine did not restart itself. It does **not** yet mean
 the ropes are computing correct answers: nothing reads the Validation suite's
-own pass/fail cells yet, and there is no DSKY to display anything. Boots are
-thermometers, not milestones.
+own pass/fail cells yet. Boots are thermometers, not milestones.
+
+Sundial E's display is the exception that carries real weight, because the rope
+says what it should be showing: `ALARM_AND_ABORT.agc` displays `FAILDISP OCT
+00531` — V05 N31 — and `FRESH_START_AND_RESTART.agc` sets alarm code `1107`
+with the comment "WILL BE DISPLAYED IN R2". Bank assignment, digit codes and
+register placement all check out at once, against the source of the program
+doing the displaying. (The alarm is correct behaviour: a rope started cold has
+no valid phase table.)
 
 Performance, release build, this host: 200 000 MCTs in ~0.35 s, i.e. roughly
 6.7× real time for a strictly per-timing-pulse interpreter. No fast mode is
@@ -139,6 +149,7 @@ Each has a reason and a cost to close, and each is a named item in
 | **Channel 30's discretes are frozen** at "TEMP IN LIMITS, IMU OPERATE" and channels 31–33 at all-ones. | No spacecraft to drive them. Documented in `channels.c`. | Small per discrete, once there is something to model. |
 | **Fixed memory covers the full 40 960-word superbank span**, with only 36 864 populated. | An out-of-range fetch then reads zeroes and fails parity, which is what the hardware does when the sense lines find no rope. Not an approximation so much as a deliberate choice; recorded so it is not mistaken for a bug. | n/a |
 | **No wall-clock pacing anywhere in the core.** | Determinism. Time advances only when the frontend calls `agc_tick`. | n/a — this is a design rule, not a gap. |
+| **Which half of the DSKY flash is lit is a guess.** | The gates fix the *rate* (`NOR(FS17, FS16)`) and the fact that the VERB/NOUN displays flash in antiphase to the KEY REL and OPR ERR lamps — both are asserted. Whether energising the VNFLSH relay blanks the display or lights it is a question about the panel's own wiring, and neither Information Series #30 nor the module sheets we hold say. We show the displays while FLASH is high. | Small, and cosmetic: it inverts a blink. Closing it needs a DSKY wiring diagram rather than an AGC one. |
 
 ## Known gaps that are not approximations
 
@@ -156,6 +167,13 @@ Each has a reason and a cost to close, and each is a named item in
   tick — so a probe signals moments and `--sentinel` records the emulated
   timing pulse. Exact and portable, but it means a probe could not be run
   against real hardware. Reasoning in `tools/probes/README.md`.
+- **The flight ropes display nothing from a cold start.** Luminary 099,
+  Comanche 055, Artemis 072 and Zerlina 56 all drive DSPOUT — every relay bank,
+  208 words in 23 emulated seconds — and write blanks with the PROG light on.
+  Sundial E and Validation both display. The keyboard path demonstrably reaches
+  the software. Whether those ropes should get to a display unaided is a
+  question about them rather than about the DSKY (FINDINGS #59), and it is a
+  plan item, not a claim that this works.
 - **Aurora 12's RUPT LOCK is uncharacterised.** It may be correct behaviour for
   a development rope that never arms an interrupt source, or it may be the
   missing SHINC path. Characterise before fixing.

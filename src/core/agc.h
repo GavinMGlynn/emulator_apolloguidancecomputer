@@ -13,6 +13,7 @@
 
 #include "agc_word.h"
 #include "cpu/cpu.h"
+#include "dsky/dsky.h"
 #include "io/channels.h"
 #include "io/counters.h"
 #include "memory/memory.h"
@@ -31,6 +32,7 @@ typedef struct agc {
     agc_memory mem;
     agc_channels channels;
     agc_scaler scaler;
+    agc_dsky dsky;
 
     /* Timing pulses since reset. Divided by 12 this is MCTs; the scaler is
      * clocked from it every AGC_SCALER_DIVISOR pulses. */
