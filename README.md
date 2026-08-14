@@ -71,6 +71,11 @@ exactly 72 timing pulses was a result rather than an assumption. A separate
 probe measures a peripheral stealing 31 whole MCTs from a program that never
 interacted with it: the Apollo 11 1201/1202 mechanism, emergent.
 
+**To build it, load a rope and drive the DSKY, see `docs/USING_THE_AGC.md`** —
+including the cold-start sequence, because a flight rope shows you nothing until
+you key V36E at it, and that is the rope being correct rather than the emulator
+being broken.
+
 See `docs/PROJECT_STATUS.md` for what is verified and how, and
 `docs/COMPLETION_PLAN.md` for the road to done. Deliberate approximations are
 listed with their reason and cost to close; nothing is left out quietly.
