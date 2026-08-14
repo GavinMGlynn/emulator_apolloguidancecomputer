@@ -406,6 +406,12 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Silent only while it is zero, which it must be: a decode with no
+     * subinstruction is a defect in the tables, not a state of the machine. */
+    if (m->cpu.undecoded) {
+        printf("UNDECODED %llu\n", (unsigned long long)m->cpu.undecoded);
+    }
+
     if (dump_state) {
         agc_format_state(m, line, sizeof line);
         printf("%s\n", line);

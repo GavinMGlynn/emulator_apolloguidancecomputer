@@ -50,7 +50,7 @@ spelled out.
 - [x] Deterministic headless frontend.
       *Verified:* nine ropes boot; debug and release dumps byte-identical.
 
-## Phase 2 — Verification (in progress)
+## Phase 2 — Verification ✅
 
 This is what turns "cycle-correct by construction" into a checkable claim.
 
@@ -126,7 +126,7 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       29 subinstructions x 4 branch values x 12 timing pulses, 0 disagreements.
       Detail in `PROJECT_STATUS.md`.
 
-## Phase 3 — Peripherals
+## Phase 3 — Peripherals ✅
 
 - [x] **DSKY.** Channel 10 relay words (thirteen banks of latching relays, not a
       decoded display), channel 11 lamps, relay bank 14's status lights,
@@ -216,7 +216,7 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       frontend supplies; and counter ALT (0060), the LM altitude meter's
       shift-out, is not implemented — our counter table stops at OUTLNK.
 
-## Phase 4 — Frontends and content
+## Phase 4 — Frontends and content ✅
 
 - [x] **SDL frontend** — a real DSKY on SDL3: seven-segment digits drawn as
       segments (no font, no assets), the three-segment signs, the lamps, and a
@@ -273,9 +273,12 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       invocation, the bit layout, the parity rule and the bank order at once.
       FINDINGS #74-75.
 
-## Phase 5 — Beyond Block II
+## Phase 5 — Beyond Block II ✅
 
-Explicitly deferred, listed so the plan names everything:
+Both items were deferred when the plan was written, and both are now done —
+the fast mode as the guide's *other* recommendation once measurement showed
+exact-skip had nothing to offer this machine, and Block I once Block II was
+finished, which was the condition the plan set for starting it.
 
 - [x] Block I, now that Block II is finished. A genuinely different machine and
       a separate core in `src/core_block1`, sharing no code with the Block II
@@ -333,12 +336,15 @@ Recorded as found, per the working conventions.
       structurally — including the flash phase — so a frontend speaking that
       protocol can synthesise 0163 without a fictitious address existing inside
       the machine.
-- [ ] The unimplemented-subinstruction fallback in `cpu.c` silently substitutes
-      STD2. Once the probe suite exists it should be a hard failure instead —
-      every reachable (SQ, ST, EXTEND) triple is in the table, so hitting it is
-      a bug in us.
-- [ ] `tools/build_ropes.sh` builds yaYUL by globbing its sources; a Virtual AGC
-      bump that adds a `main`-bearing file would break it. Pin or filter.
+- [x] The unimplemented-subinstruction fallback in `cpu.c` no longer substitutes
+      STD2 *silently*: it counts, and the headless frontend prints `UNDECODED n`
+      whenever the count is non-zero. Still a fallback rather than an abort — a
+      core has no business stopping a run — but one that cannot pass unnoticed.
+      *Verified:* zero across every rope we have.
+- [x] `tools/build_ropes.sh` no longer globs yaYUL's sources blindly: the
+      separate tools that live in that directory are excluded by name, so a
+      *new* one is a clear error with a message saying what to do rather than a
+      duplicate-`main` link failure that explains nothing.
 - [ ] **TCSAJ3 is not implemented.** The memo lists it and the gates decode it;
       it is the Computer Test Set's "transfer control to specified address jam",
       so nothing in flight reaches it and `ext/agcplusplus` never modelled it

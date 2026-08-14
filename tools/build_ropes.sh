@@ -31,8 +31,27 @@ mkdir -p "$scratch"
 yayul="$scratch/yaYUL"
 if [[ ! -x "$yayul" ]]; then
     echo "Building yaYUL..."
+    # Globbing the directory would break the day a submodule bump adds a second
+    # file carrying a main() — the linker would fail on a duplicate symbol and
+    # the message would say nothing about why. Take everything except the known
+    # alternate entry points instead, so a *new* one is a clear error rather
+    # than a silent inclusion.
+    sources=()
+    for f in "$vagc"/yaYUL/*.c; do
+        case "$(basename "$f")" in
+            # Not part of the assembler: separate tools that live in the same
+            # directory and have main() of their own.
+            Disassembler.c|dumpROM.c|oct2bin.c) continue ;;
+            *) sources+=("$f") ;;
+        esac
+    done
     "${CC:-clang}" -O2 -w -DNVER= -DINSTALLDIR=/usr/local \
-        -o "$yayul" "$vagc"/yaYUL/*.c -lm
+        -o "$yayul" "${sources[@]}" -lm || {
+        echo "  yaYUL failed to build. If the error is a duplicate main(), a" >&2
+        echo "  Virtual AGC bump has added a tool to yaYUL/; add it to the" >&2
+        echo "  exclusion list above." >&2
+        exit 1
+    }
 fi
 
 # --- Assemble ropes -----------------------------------------------------------

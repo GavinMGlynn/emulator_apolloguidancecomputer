@@ -379,7 +379,9 @@ static void after_timepulse(agc *m)
             /* Every (SQ, ST, EXTEND) triple the hardware can produce is in the
              * table, so this is a bug in us, not a machine state. Fall back to
              * STD2 (which just fetches the next instruction) rather than
-             * stopping, and leave the state visible for the caller to notice. */
+             * stopping — and count it, because a fallback nobody can see is a
+             * fallback that hides the bug it was meant to survive. */
+            c->undecoded++;
             next = &agc_subinst_table[0];
             c->s = agc_w(c->z & AGC_ADDR_MASK);
         }

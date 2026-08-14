@@ -56,6 +56,13 @@ typedef struct agc_cpu {
     bool no_eac;         /* NEACON..NEACOF inhibits the end-around carry */
     bool mp3a;           /* the MP3 decode line, a second, independent inhibit */
 
+    /* Times the decoder found no subinstruction for the (SQ, ST, EXTEND) it was
+     * handed. Every triple the hardware can produce is in the table, so this
+     * can only ever count bugs in us — it is kept rather than asserted because
+     * a core has no business aborting a run, and reported by the frontend so it
+     * cannot pass unnoticed. */
+    uint64_t undecoded;
+
     /* Address of the erasable word read this cycle, held so the rewrite before
      * T10 goes back to the right place even if S has since changed. Zero means
      * "no erasable cycle in progress" — address 0 is register A, never core. */
