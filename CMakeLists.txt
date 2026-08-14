@@ -37,6 +37,19 @@ add_library(unity STATIC ext/unity/src/unity.c)
 # SYSTEM so Unity's assert macros don't trip our strict warning set in tests.
 target_include_directories(unity SYSTEM PUBLIC ext/unity/src)
 
+# Unity picks its own noreturn spelling, and picks wrong for the compiler the
+# Windows job actually runs: clang with the MSVC driver defines _MSC_VER but not
+# __GNUC__, so with a current Windows SDK it falls past both special cases and
+# includes <stdnoreturn.h>. That header defines `noreturn` as a macro, and the
+# UCRT declares exit() as `__declspec(noreturn)` — which then expands to
+# `__declspec(_Noreturn)` and fails to parse. C23 never reached that branch,
+# which is why the standard change surfaced it. PUBLIC because the suites
+# include unity.h themselves, and `#ifndef UNITY_NORETURN` is Unity's own
+# documented way to be overridden — vendored code stays untouched.
+if(WIN32 AND NOT CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_definitions(unity PUBLIC UNITY_NORETURN=_Noreturn)
+endif()
+
 # --- First-party targets ------------------------------------------------------
 enable_testing()
 add_subdirectory(src/core)

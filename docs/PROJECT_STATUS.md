@@ -274,3 +274,9 @@ Each has a reason and a cost to close, and each is a named item in
   `linux-gcc` job was added — the Rocky container installs clang too — so
   gcc-only diagnostics had nowhere to surface. `-Wconversion` found three the
   day the job was added. Five jobs now: clang, gcc, Rocky, macOS, Windows.
+- **Unity's noreturn is pinned on Windows.** The Windows job runs clang with the
+  MSVC driver, which defines `_MSC_VER` but not `__GNUC__`; Unity's own cascade
+  falls past both of its special cases and includes `<stdnoreturn.h>`, whose
+  `noreturn` macro then wrecks the UCRT's `__declspec(noreturn)` on `exit()`.
+  Overridden through `UNITY_NORETURN`, which is the knob Unity documents for
+  it, so the vendored tree stays untouched.
