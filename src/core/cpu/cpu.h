@@ -84,6 +84,16 @@ typedef struct agc_cpu {
     bool night_watchman;         /* erasable 067 was touched since the last check */
     uint8_t dv_stage;            /* grey-coded divide stage, advanced by DVST */
 
+    /* The Computer Test Set. Ground equipment, not part of the flown machine,
+     * and modelled only as far as TCSAJ3 needs: a request to jam the stage
+     * counter to 3, and a hold on the write lines while that sequence runs.
+     * The hold is not a shortcut — TCSAJ3's T8 row is `WS WZ ST2` with no read
+     * pulse at all, so the address genuinely comes from off the machine, and
+     * the write lines are a wired-OR bus with the CTS as another driver. */
+    bool cts_pending;      /* jam requested; takes effect before the next T1 */
+    bool cts_driving;      /* the CTS is holding the write lines this MCT */
+    agc_word cts_lines;    /* what it is holding them at */
+
     /* Priority control. */
     uint8_t counters[AGC_COUNTER_COUNT]; /* enum agc_count_dir per cell */
     bool interrupts[AGC_RUPT_COUNT];
@@ -103,6 +113,18 @@ void agc_cpu_tick(struct agc *m);
 
 /* Request a GOJAM (hardware restart). It takes effect before the next T1. */
 void agc_cpu_queue_gojam(agc_cpu *cpu);
+
+/* Request a TCSAJ: the Computer Test Set's "transfer control to specified
+ * address jam". Like GOJAM it takes effect before the next T1, and like GOJAM
+ * it works by forcing the stage counter — 3 rather than 1 — onto the TC order
+ * code, which is what the memo means by calling both non-programmable sequences
+ * that share that code. The address is held on the write lines for the MCT,
+ * because TCSAJ3 has no read pulse to fetch it with.
+ *
+ * Nothing in flight can reach this: it exists so the sequence the gates decode
+ * is one the machine can actually run, rather than a table entry nothing
+ * exercises. */
+void agc_cpu_queue_tcsaj(agc_cpu *cpu, agc_word address);
 
 /* Adder: U = X + Y, plus the explicit carry from CI and the end-around carry,
  * recomputed after every pulse that touches X, Y or the carry controls. */

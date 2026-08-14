@@ -388,6 +388,52 @@ static void test_a_power_on_gojam_starts_execution_at_4000(void)
     TEST_ASSERT_EQUAL_HEX16(04001, m->cpu.z);
 }
 
+/* TCSAJ3 — the other non-programmable sequence on the TC order code.
+ *
+ * GOJ1 is entered by forcing the stage counter to 1 and lands the program at
+ * 04000; TCSAJ3 is entered by forcing it to 3 and lands it wherever the
+ * Computer Test Set is holding the write lines. Nothing in flight can reach
+ * this: it is ground equipment addressing a machine on the bench. It is here
+ * because the gates decode it, and a sequence the hardware can address should
+ * be one this machine can run rather than a table entry nothing exercises. */
+static void test_a_test_set_jam_transfers_control_to_the_address_it_holds(void)
+{
+    test_put_fixed(m, 04000, I_TCF(04000));
+    test_put_fixed(m, 05432, I_TCF(05432));
+    agc_cpu_start(m);
+    test_run_mcts(m, 2);
+    TEST_ASSERT_EQUAL_HEX16(04001, m->cpu.z); /* the ordinary GOJAM entry */
+
+    agc_cpu_queue_tcsaj(&m->cpu, 05432);
+    test_run_mcts(m, 1);
+    /* T8's `WS WZ` latched the held lines into both registers. */
+    TEST_ASSERT_EQUAL_HEX16(05432, m->cpu.z);
+    TEST_ASSERT_EQUAL_HEX16(05432, m->cpu.s);
+    /* And ST2 at the same pulse hands the machine to STD2, which is what the
+     * memo means by "TCSAJ3 (followed by STD2)". */
+    TEST_ASSERT_EQUAL_STRING("STD2", m->cpu.subinst->name);
+}
+
+static void test_a_test_set_jam_lets_the_write_lines_go_after_one_cycle(void)
+{
+    /* The jam is one Memory Cycle Time. If the Computer Test Set kept driving,
+     * every subsequent write would have its address OR'd in and the machine
+     * would never execute anything again. */
+    test_put_fixed(m, 04000, I_TCF(04000));
+    test_put_fixed(m, 05432, I_TCF(05433));
+    test_put_fixed(m, 05433, I_TCF(05433));
+    agc_cpu_start(m);
+    test_run_mcts(m, 2);
+
+    agc_cpu_queue_tcsaj(&m->cpu, 05432);
+    test_run_mcts(m, 1);
+    TEST_ASSERT_FALSE(m->cpu.cts_driving);
+
+    /* STD2 fetches 05432, whose TCF then moves on under its own power. */
+    test_run_mcts(m, 2);
+    TEST_ASSERT_EQUAL_HEX16(05434, m->cpu.z);
+}
+
 static void test_fetching_an_unwoven_rope_word_raises_the_parity_alarm(void)
 {
     /* No rope at all: the first fetch finds even parity, which is how a
@@ -427,6 +473,8 @@ int main(void)
     RUN_TEST(test_relint_clears_the_interrupt_inhibit);
     RUN_TEST(test_an_extracode_needs_the_extend_pseudo_code_before_it);
     RUN_TEST(test_a_power_on_gojam_starts_execution_at_4000);
+    RUN_TEST(test_a_test_set_jam_transfers_control_to_the_address_it_holds);
+    RUN_TEST(test_a_test_set_jam_lets_the_write_lines_go_after_one_cycle);
     RUN_TEST(test_fetching_an_unwoven_rope_word_raises_the_parity_alarm);
     return UNITY_END();
 }

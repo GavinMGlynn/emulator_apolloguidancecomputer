@@ -87,6 +87,42 @@ void agc_cpu_queue_gojam(agc_cpu *cpu)
     cpu->gojam_pending = true;
 }
 
+void agc_cpu_queue_tcsaj(agc_cpu *cpu, agc_word address)
+{
+    cpu->cts_pending = true;
+    cpu->cts_lines = agc_w(address & AGC_ADDR_MASK);
+}
+
+/* Enter one of the two non-programmable sequences that share the TC order code
+ * by forcing the stage counter at it, which is what both GOJAM and the Computer
+ * Test Set physically do. */
+static void force_tc_stage(agc_cpu *c, uint8_t stage)
+{
+    for (size_t i = 0; i < agc_subinst_count; ++i) {
+        if (agc_subinst_table[i].stage == stage && !agc_subinst_table[i].extend
+            && agc_subinst_table[i].sq_mask == 070
+            && agc_subinst_table[i].sq_value == 0) {
+            c->subinst = &agc_subinst_table[i];
+            break;
+        }
+    }
+    c->sq = 0;
+    c->extend = false;
+    c->extend_next = false;
+    c->st = stage;
+    c->st_next = 0;
+}
+
+static void tcsaj(agc_cpu *c)
+{
+    /* Stage 3 on the TC code is TCSAJ3, as stage 1 is GOJ1. */
+    force_tc_stage(c, 3);
+    c->cts_driving = true;
+    c->cts_pending = false;
+    /* Twelve bits: S is a 12-bit register and WZ takes the same lines. */
+    c->cts_lines = agc_w(c->cts_lines & AGC_ADDR_MASK);
+}
+
 /* GOJAM: the hardware restart. Not a reset — erasable memory survives, which is
  * the whole point of the restart-protection scheme the flight software builds
  * on top of it. */
@@ -96,20 +132,11 @@ static void gojam(agc *m)
 
     /* GOJ1 is stage 1 of the TC sequence with SQ forced to zero; it lands the
      * program at 04000. */
-    for (size_t i = 0; i < agc_subinst_count; ++i) {
-        if (agc_subinst_table[i].stage == 1 && !agc_subinst_table[i].extend
-            && agc_subinst_table[i].sq_mask == 070 && agc_subinst_table[i].sq_value == 0) {
-            c->subinst = &agc_subinst_table[i];
-            break;
-        }
-    }
+    force_tc_stage(c, 1);
 
-    c->sq = 0;
-    c->extend = false;
-    c->extend_next = false;
-    c->st = 1;
-    c->st_next = 0;
     c->restart = true;
+    c->cts_pending = false;
+    c->cts_driving = false;
     c->inkl = false;
     c->inhibit_interrupts = false;
     c->pseudo = false;
@@ -211,9 +238,19 @@ static void before_timepulse(agc *m)
 
     c->mcro = false;
 
+    /* The Computer Test Set holding the write lines. It is another driver on a
+     * wired-OR bus, so it is asserted before the subinstruction's own pulses
+     * run and stays up for every pulse of the MCT — which is what lets TCSAJ3's
+     * `WS WZ` at T8 latch an address it was never given a read pulse to fetch. */
+    if (c->cts_driving) {
+        c->write_bus = agc_w(c->write_bus | c->cts_lines);
+    }
+
     if (c->timepulse == 1) {
         if (c->gojam_pending) {
             gojam(m);
+        } else if (c->cts_pending) {
+            tcsaj(&m->cpu);
         }
         if (c->inkl) {
             const agc_subinst *seq = counter_sequence(c);
@@ -346,6 +383,9 @@ static void after_timepulse(agc *m)
         c->st = c->st_next;
         c->st_next = 0;
         c->inkl = false;
+        /* The jam is one Memory Cycle Time; the CTS lets the lines go and the
+         * machine runs on from wherever TCSAJ3 put Z. */
+        c->cts_driving = false;
 
         if (c->fetch_next_instruction) {
             c->channel_access = false;

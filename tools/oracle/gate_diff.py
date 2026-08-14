@@ -50,12 +50,12 @@ NOT_IN_THE_CROSS_POINT = {
     "CLRIIP",  # RESUME dropping IIP: rupt_service (A15), FINDINGS #16
 }
 
-#: Sequences the gates can address but our tables do not carry.  TCSAJ3
-#: ("transfer control to specified address jam") is driven by the Computer Test
-#: Set, not by anything in flight, so ext/agcplusplus never implemented it and
-#: neither have we.  Named here so its absence stays a decision rather than a
-#: hole; it is a tail in docs/COMPLETION_PLAN.md.
-NOT_MODELLED = {"TCSAJ3"}
+#: Sequences the gates can address but our tables do not carry.  Empty, and
+#: worth keeping rather than deleting: it is the place a deliberate omission
+#: goes, so that "the sweep does not check this" stays a decision on the page
+#: instead of a silent gap in the loop below.  TCSAJ3 lived here until it was
+#: taken from the memo and dispatched at TC stage 3 like GOJ1 at stage 1.
+NOT_MODELLED: set[str] = set()
 
 
 def parse_tables() -> dict[str, list[tuple[int, int, int, set[str]]]]:

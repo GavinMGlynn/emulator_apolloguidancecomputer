@@ -581,6 +581,11 @@ static const agc_pulse_row tcf0_rows[] = {
     {  8, 0x0, 0x0, { AGC_P_RAD, AGC_P_WB, AGC_P_WS } },  /* T8 xx */
 };
 
+static const agc_pulse_row tcsaj3_rows[] = {
+    {  2, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG } },  /* T2 xx */
+    {  8, 0x0, 0x0, { AGC_P_WS, AGC_P_WZ, AGC_P_ST2 } },  /* T8 xx */
+};
+
 static const agc_pulse_row ts0_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_RL10BB, AGC_P_WS } },  /* T1 xx */
     {  2, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG } },  /* T2 xx */
@@ -696,6 +701,7 @@ const agc_subinst agc_subinst_table[] = {
     { "MP1", 0, 1, true, 070, 0070, mp1_rows, (uint8_t)(sizeof mp1_rows / sizeof *mp1_rows) },
     { "MP3", AGC_SEQ_MP3, 3, true, 070, 0070, mp3_rows, (uint8_t)(sizeof mp3_rows / sizeof *mp3_rows) },
     { "STD2", 0, 2, true, 000, 0000, std2_rows, (uint8_t)(sizeof std2_rows / sizeof *std2_rows) },
+    { "TCSAJ3", 0, 3, false, 070, 0000, tcsaj3_rows, (uint8_t)(sizeof tcsaj3_rows / sizeof *tcsaj3_rows) },
 };
 const size_t agc_subinst_count = sizeof agc_subinst_table / sizeof *agc_subinst_table;
 

@@ -361,11 +361,20 @@ Recorded as found, per the working conventions.
       separate tools that live in that directory are excluded by name, so a
       *new* one is a clear error with a message saying what to do rather than a
       duplicate-`main` link failure that explains nothing.
-- [ ] **TCSAJ3 is not implemented.** The memo lists it and the gates decode it;
-      it is the Computer Test Set's "transfer control to specified address jam",
-      so nothing in flight reaches it and `ext/agcplusplus` never modelled it
-      either. Named in `gate_diff.py` as `NOT_MODELLED` so its absence stays a
-      decision. Close it if the CTS interface is ever modelled.
+- [x] **TCSAJ3 is implemented**, taken from the memo the way SHINC and SHANC
+      were — the reference model has no TCSAJ3 either — and dispatched at TC
+      stage 3, exactly as GOJ1 sits at TC stage 1. Both are what the memo calls
+      the non-programmable sequences sharing that order code, and both are
+      entered the same way: by something outside the program forcing the stage
+      counter. GOJAM does it for one, the Computer Test Set for the other.
+      Enough of the CTS is modelled to reach it — `agc_cpu_queue_tcsaj()`, and
+      a hold on the write lines, which is not a shortcut but the reason TCSAJ3
+      can latch an address at T8 with no read pulse to fetch one.
+      *Verified:* the gate sweep now covers it — 1440 rows across 30
+      subinstructions, 0 disagreements, up from 1392 across 29 — and two named
+      tests run the sequence: control lands on the held address with S and Z
+      both taking it and STD2 following, and the lines are released after the
+      one cycle so the machine runs on under its own power.
 - [ ] **The gate sweep does not cover the divide sequences.** The grey counter in
       module A4 free-runs when no divide is in progress, so the bench holds the
       divide conditions quiet and probes only the non-divide subinstructions

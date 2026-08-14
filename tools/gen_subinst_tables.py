@@ -75,7 +75,18 @@ GATE_CORRECTIONS: dict[str, list[tuple[int, set[str], list[str]]]] = {
 # `docs/references/AgcPulsesAndSequences.txt` by construction; a transcription
 # error would have to be an error in reading the memo file, which the same
 # parser does for every other sequence.
-FROM_THE_MEMO = ("SHINC", "SHANC")
+FROM_THE_MEMO = ("SHINC", "SHANC", "TCSAJ3")
+
+# TCSAJ3 is decoded from SQ like any other subinstruction, so unlike SHINC and
+# SHANC it needs a dispatch row — and the reference model has none, having never
+# implemented it. The memo puts it on the TC operation code at stage 3, sharing
+# that code with TC0 (stage 0) and GOJ1 (stage 1): "The TC operation code is
+# shared by the non-programmable sequences GOJ1 (followed by TC0) and TCSAJ3
+# (followed by STD2)." So the mask and value are TC's, exactly as GOJ1's are,
+# and only the stage differs. It is entered the way GOJ1 is — by something
+# outside the program forcing the stage counter — GOJAM for one, the Computer
+# Test Set for the other.
+EXTRA_DISPATCH = [("TCSAJ3", 3, False, 0o70, 0o000)]
 
 
 def sequences_from_memo(parsed: dict, memo: dict) -> None:
@@ -453,6 +464,13 @@ def main() -> int:
     sequences_from_memo(parsed, memo)
     apply_gate_corrections(parsed)
     dispatch = parse_dispatch()
+    for extra in EXTRA_DISPATCH:
+        if any(d[0] == extra[0] for d in dispatch):
+            raise SystemExit(
+                f"{extra[0]} is now in the reference model's dispatch list; drop "
+                f"it from EXTRA_DISPATCH so the model stays the source"
+            )
+        dispatch.append(extra)
     text = emit(parsed, dispatch)
 
     for note in report_divergences(parsed, memo):

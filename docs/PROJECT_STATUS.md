@@ -268,6 +268,25 @@ Each has a reason and a cost to close, and each is a named item in
   merely reaching the same answer, and `gate_level_mp3a_under_steal` re-reads it
   from the netlist on every run.
 
+## The Computer Test Set
+
+Only as much of it as TCSAJ3 needs, and no more. The AGC's ground equipment
+could jam an address into the machine on the bench, and the memo lists the
+sequence that does it beside GOJ1 as the two non-programmable users of the TC
+order code. Both are entered by forcing the stage counter — 1 for GOJ1, 3 for
+TCSAJ3 — so `agc_cpu_queue_tcsaj()` is the same shape as `agc_cpu_queue_gojam()`
+and the decode does the rest.
+
+The one thing worth pointing at is the write lines. TCSAJ3's T8 row is `WS WZ
+ST2`, with no read pulse anywhere in the sequence, so the address cannot come
+from inside the machine: the CTS holds it on the write lines, which are a
+wired-OR bus with the test set as another driver. Modelling it that way rather
+than special-casing the address into T8 is what keeps it honest, and it is
+released after the single Memory Cycle Time the jam occupies.
+
+Verified by the gate sweep (1440 rows across 30 subinstructions, 0 disagreeing)
+and by two tests that run the sequence and check where control lands.
+
 ## The build itself
 
 - **C17, not C23, and on purpose.** The standard a project declares has to be
