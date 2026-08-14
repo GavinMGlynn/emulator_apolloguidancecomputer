@@ -78,6 +78,17 @@ if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/ext/agc_simulation/
     add_test(NAME gate_level_crosspoint
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/oracle/gate_diff.py)
     set_tests_properties(gate_level_crosspoint PROPERTIES TIMEOUT 600)
+
+    # What priority control does to the instruction decode. INKL suppresses the
+    # order code for the length of a stolen MCT — it kills MP3, and so MP3A, and
+    # so the third input on the carry gate — while leaving the SQ register itself
+    # loaded so the interrupted instruction resumes. Kept as a test because the
+    # core models that suppression now, and a claim about a line nothing else
+    # observes should be re-read from the gates on every run rather than trusted
+    # to a comment. See tools/oracle/FINDINGS.md #49.
+    add_test(NAME gate_level_mp3a_under_steal
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/oracle/gate_mp3a.py)
+    set_tests_properties(gate_level_mp3a_under_steal PROPERTIES TIMEOUT 300)
 endif()
 
 # Differential test against the runnable oracle: same rope, same number of

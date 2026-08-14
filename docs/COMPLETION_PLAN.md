@@ -380,9 +380,15 @@ Recorded as found, per the working conventions.
       FINDINGS #59.
       *Verification:* either a listing-backed explanation of what these ropes
       wait for, or the fix with the probe that proves it.
-- [ ] **`mp3a` during a stolen MCT is unverified.** MP3A is a decode line, so a
-      counter sequence servicing a request between MP1 and MP3 runs with the
-      end-around carry still inhibited (FINDINGS #49). That falls out of the
-      netlist and matches it, but nothing else confirms it.
-      *Verification:* a probe that forces a counter request into that window and
-      reads the counter, or the gate-level model run for those MCTs.
+- [x] **`mp3a` during a stolen MCT — settled at the gates, and we had it
+      backwards.** INKL suppresses the order-code decode for the length of the
+      steal: it drives SQ7_n high through A3 gate U3014, killing
+      `MP3 = NOR(ST3_n, SQ7_n, SQEXT_n)` and with it MP3A. The SQ register is
+      left loaded, which is how the multiply resumes. It changes no arithmetic —
+      NEAC covers every whole MCT a steal inside a multiply can occupy, and MP3A
+      only bites in MP3's last six pulses where no steal can land — so the old
+      model was right by accident. FINDINGS #49, #79.
+      *Verified:* `gate_level_mp3a_under_steal` reads MP3A and the carry gate at
+      all twelve pulses with INKL down and up; `cpu.c` now clears `mp3a` on a
+      steal and every golden, rope hash and the 2496-case differential sweep is
+      byte-identical across the change.

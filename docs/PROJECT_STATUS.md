@@ -258,8 +258,15 @@ Each has a reason and a cost to close, and each is a named item in
   Both limits are enforced rather than assumed: the simulator reports the nets
   that never settle and refuses to read a value from them.
 - **All four FINDINGS rows that were open against the memo are now closed** (#9,
-  #10, #11, #13). The remaining unverified corner is `mp3a` during an MCT stolen
-  by priority control — faithful to the netlist, confirmed by nothing else.
+  #10, #11, #13), and so is the corner that was left unverified beside them.
+  `mp3a` during an MCT stolen by priority control turned out to be the opposite
+  of what we modelled: INKL suppresses the order-code decode for the length of
+  the steal, so MP3A goes down rather than staying up (FINDINGS #79). It changes
+  no arithmetic, because NEAC already covers every whole MCT a steal inside a
+  multiply can take — every golden and the differential sweep are byte-identical
+  across the correction — but the mechanism now matches the gates instead of
+  merely reaching the same answer, and `gate_level_mp3a_under_steal` re-reads it
+  from the netlist on every run.
 
 ## The build itself
 

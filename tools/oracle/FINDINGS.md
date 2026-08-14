@@ -279,11 +279,9 @@ quietly undo it on the next submodule bump.
 
 Two consequences worth stating, because neither was obvious:
 
-- **MP3A follows the decode, not the injected sequence.** A counter request
-  serviced in the MCT between the last MP1 and MP3 leaves SQ and the stage
-  counter alone, so MP3A is still up and that counter's increment runs with the
-  end-around carry inhibited. Emergent, faithful to the netlist, and not
-  verified against anything else — flagged here rather than smoothed over.
+- **MP3A does *not* survive the injected sequence — corrected, see #79.** This
+  entry used to claim the opposite, on the reasoning that a steal leaves SQ and
+  the stage counter alone. It does leave them alone; the decode is gated anyway.
 - **Multiply had no unit test at all.** Three timing probes, a 2496-case
   differential sweep and nine booting ropes did not notice, because the
   reference model shared the same behaviour and the differential test can only
@@ -498,3 +496,30 @@ the keyboard has four peripherals with provably nothing to do, and a call per
 timing pulse to establish that is pure overhead. Naming the exact idle state of
 each is precisely what the guide asks for — it is only the *CPU* that never has
 one.
+
+## #79 — What a stolen MCT does to MP3A
+
+`tools/oracle/gate_mp3a.py`, run as the `gate_level_mp3a_under_steal` test.
+
+| # | Question | Answer | Where it was read |
+| - | -------- | ------ | ----------------- |
+| 79 | A counter request steals the MCT that was about to be MP3. Is MP3A still up, so that the involuntary increment runs with the end-around carry inhibited? | **No.** INKL suppresses the order-code decode for the whole of the steal. `MP3 = NOR(ST3_n, SQ7_n, SQEXT_n)`, and INKL drives SQ7_n high through A3 gate U3014 pad 1 = `NOR(net_U3012_Pad4, INKL)`. The SQ *register* is untouched — that is how the multiply resumes — but the decode *line* is down, and the carry gate follows it exactly: with NEAC and EAC_n held inactive, CINORM is 0 with no steal and 1 during one, at all twelve timing pulses. | `ext/agc_simulation` modules A3 and A7, traced gate by gate and then read out with both INKL levels. |
+
+**It changes no arithmetic, and that is the interesting part.** NEAC is set at
+MP0 T10 and not cleared until TL15 at MP3 T6, so the latch already covers every
+whole MCT a steal inside a multiply can occupy. MP3A only does work during MP3's
+own last six timing pulses — and a steal takes a *whole* Memory Cycle Time and is
+decided between them, so none can land there. Both readings inhibit the carry for
+every steal that can actually happen.
+
+So the old entry reached the right behaviour by the wrong mechanism. `cpu.c` now
+clears `mp3a` where priority control injects a sequence, matching the gates;
+every probe golden, every rope hash and the 2496-case differential sweep are
+byte-identical across the change, which is what proves the two readings are
+observationally identical rather than merely arguing it.
+
+Worth stating for its own sake: this is the second time the MP3A term has been
+worth chasing, and both times the answer came from the netlist rather than from
+a document. AGC4 Memo #9 does not mention MP3A at all, and `ext/agcplusplus`
+reaches the same arithmetic by keeping NEACOF at MP3 T12 — under which the
+question cannot even be posed, because its `no_eac` covers the whole of MP3.

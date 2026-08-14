@@ -222,6 +222,19 @@ static void before_timepulse(agc *m)
                 /* SHIFT, in the gates: asserted for the whole of either
                  * shift-in sequence, and read by WYD. */
                 c->shinc = seq == &agc_subinst_shinc || seq == &agc_subinst_shanc;
+                /* INKL suppresses the order-code decode for the duration of the
+                 * steal — it forces SQ7_n high through A3 gate U3014, which
+                 * kills MP3 = NOR(ST3_n, SQ7_n, SQEXT_n). The SQ register itself
+                 * is untouched, which is how the interrupted multiply resumes,
+                 * but the decode *line* is down and so is MP3A.
+                 *
+                 * This changes no arithmetic, and it is worth saying why rather
+                 * than leaving it to be rediscovered: NEAC is set at MP0 T10 and
+                 * not cleared until TL15 at MP3 T6, so it already covers every
+                 * whole MCT that a steal inside a multiply can occupy. The MP3A
+                 * term only does work in MP3's own last six pulses, where no
+                 * steal can land. See tools/oracle/gate_mp3a.py. */
+                c->mp3a = false;
             } else {
                 c->inkl = false;
             }
