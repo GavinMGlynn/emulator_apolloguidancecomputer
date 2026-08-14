@@ -93,7 +93,10 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | IMU — gyro torquing (channel 14 selection and sign) | Working | `imu_suite`; table 30-5C's selection truth table, including "none" |
 | IMU — PIPAs | Working | `imu_suite`: velocity increments both ways, and one lost when it arrives too soon |
 | IMU — dynamics (rates, drift, integration) | **Missing** | Deliberate: see approximations |
-| Downlink / radar | **Missing** | DOWNRUPT and RADARRUPT are wired to WOVR, but nothing drives them |
+| Downlink converter (channels 34/35, DOWNRUPT) | Working | `telemetry_suite`; silent until a word rate is set, which is what a bench machine does |
+| Outlink / crosslink shift-out (OUTLNK) | Working | `telemetry_suite`: every bit that leaves is transmitted, and it raises no interrupt |
+| Radar (channel 13 selection, RNRAD, RADARRUPT) | Working | `telemetry_suite` |
+| Altitude meter counter ALT (0060) | **Missing** | Our counter table stops at OUTLNK; LM only |
 | Headless frontend | Working | Used for every rope boot above |
 | SDL frontend | **Missing** | — |
 | Probe framework (`tools/probes/asm.py`, sentinels, `regress.py`) | Working | `probe_regression` in CTest, both build types |

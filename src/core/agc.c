@@ -12,6 +12,7 @@ void agc_init(agc *m)
     agc_uplink_reset(&m->uplink);
     agc_cdu_reset(&m->cdu);
     agc_imu_reset(&m->imu);
+    agc_telemetry_reset(&m->telemetry);
     agc_cpu_start(m);
 }
 
@@ -53,6 +54,7 @@ void agc_tick(agc *m)
     agc_dsky_tick(m);
     agc_uplink_tick(m);
     agc_cdu_tick(m);
+    agc_telemetry_tick(m);
 }
 
 void agc_tick_mct(agc *m)

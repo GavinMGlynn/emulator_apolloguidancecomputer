@@ -181,13 +181,22 @@ This is what turns "cycle-correct by construction" into a checkable claim.
 - [~] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
       *Done:* the uplink, above — a known word arrives in INLINK and raises
       UPRUPT when its flag bit shifts out.
-      *Left:* the downlink. OTLNK shifts out through the same SHINC path and
-      DOWNRUPT is already wired to WOVR, but nothing drives channels 34/35 or
-      consumes the serialised word.
-      *Verification:* a rope's downlink list read back out of channels 34/35 at
-      the 50 or 100 words per second the telemetry format specifies.
-- [ ] **Radar (RNRAD, RADARRUPT).**
-      *Verification:* probe.
+      *Done:* the downlink too, and it turned out not to shift at all — the
+      Downlink Converter reads channels 34 and 35 whole and serialises them
+      itself, so DOWNRUPT is the ground station asking for the next word rather
+      than anything the AGC shifted. OUTLNK is the shift-out path and raises no
+      interrupt; wiring it to DOWNRUPT, as this once did, would have had the
+      computer interrupted by its own crosslink.
+      *Verified:* `telemetry_suite`.
+- [x] **Radar (RNRAD, RADARRUPT).** Channel 13's mode selection — where two of
+      the eight combinations are deliberately "none" — and the same
+      flag-and-fifteen-bits protocol as the uplink into a different counter and
+      a different interrupt.
+      *Verified:* `telemetry_suite`: the selection table, both "none" cases, and
+      a word assembling in RNRAD and raising RADARRUPT and not UPRUPT.
+      *Tail:* nothing models a radar, so the answer's *content* is whatever a
+      frontend supplies; and counter ALT (0060), the LM altitude meter's
+      shift-out, is not implemented — our counter table stops at OUTLNK.
 
 ## Phase 4 — Frontends and content
 

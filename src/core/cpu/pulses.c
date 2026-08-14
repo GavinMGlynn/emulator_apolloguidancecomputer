@@ -498,13 +498,27 @@ static void p_wovr(agc *m)
      * this instance, signal BR1/ is generated, which causes the generation of
      * signal UPRUPT". */
     if (m->cpu.shinc) {
-        if ((m->cpu.br & 0x2u) == 0) {
+        /* TSGN put the bit on its way out of the top into BR1 at T5. */
+        const bool shifted_out = (m->cpu.br & 0x2u) != 0;
+
+        /* OUTLNK is a shift *out*: every bit that leaves is a bit transmitted,
+         * whether it is a one or a zero. */
+        if (counter == AGC_CNT_OTLNK) {
+            agc_outlink_bit(m, shifted_out);
+            return;
+        }
+        if (!shifted_out) {
             return;
         }
         switch (counter) {
         case AGC_CNT_INLINK: m->cpu.interrupts[AGC_RUPT_UPRUPT] = true; break;
         case AGC_CNT_RNRAD:  m->cpu.interrupts[AGC_RUPT_RADARRUPT] = true; break;
-        case AGC_CNT_OTLNK:  m->cpu.interrupts[AGC_RUPT_DOWNRUPT] = true; break;
+        /* OUTLNK deliberately raises nothing. It is a shift *out* to the
+         * crosslink equipment, which pulls a bit at a time and needs no
+         * announcement; DOWNRUPT belongs to the Downlink Converter, which does
+         * not shift at all — it reads channels 34 and 35 whole (Information
+         * Series #30 paragraph 30-70). Wiring OUTLNK to DOWNRUPT, as this once
+         * did, would have the computer interrupted by its own crosslink. */
         default: break;
         }
         return;
