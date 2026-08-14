@@ -1,5 +1,23 @@
 # Project status
 
+## Where this stands
+
+Every phase of `docs/COMPLETION_PLAN.md` is complete: 44 items, none partial.
+What is left is the tails section — work found while building, recorded as
+found, each with the verification it needs named.
+
+| | |
+|---|---|
+| CTest suites | 21, green on Linux (clang and gcc), RHEL, macOS and Windows |
+| Gate-level sweep | 1672 rows across 36 subinstructions, 0 disagreeing |
+| Differential sweep | 2496 cases against `ext/agcplusplus` |
+| MIT validation rope | runs to completion, verdict read off the panel |
+| Flight ropes | Luminary 099 and Comanche 055 boot, take keystrokes, and pass the DSKY lamp test |
+| Block I | a second core with its own suite |
+
+Debug and release are byte-identical by design, and CI asserts it: every number
+here is an emulated timing-pulse count, not a measurement of the host.
+
 The single source of truth for **what works and what backs it**. Updated in the
 same commit as the code it describes.
 

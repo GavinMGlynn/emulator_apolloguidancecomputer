@@ -386,14 +386,37 @@ Recorded as found, per the working conventions.
       FINDINGS #53, #80.
       *Verified:* **1672 rows across 36 subinstructions, 0 disagreeing**, up from
       1392 across 29.
-- [ ] **The flight ropes reach no display from a cold start.** Luminary 099,
-      Comanche 055, Artemis 072 and Zerlina 56 cycle every relay bank through
-      DSPOUT and write blanks, with the PROG light on; keypresses do reach
-      `CHARIN` (pressing VERB lights KEY REL, its documented response). Sundial E
-      and Validation both display. Characterise before assuming it is ours —
-      FINDINGS #59.
-      *Verification:* either a listing-backed explanation of what these ropes
-      wait for, or the fix with the probe that proves it.
+- [x] **The flight ropes reach no display from a cold start — because they are
+      waiting for a person, and that is them being correct.** Virtual AGC's own
+      LM tutorial: *"After a fresh AGC start there is a need to do a reset by
+      typing V36E."* Keyed that way, Luminary 099 and Comanche 055 both answer,
+      and `V35E` — the DSKY's own lamp test — fills all seven display fields with
+      8s, sets the three signs and flashes, on both ropes at the same MCT.
+      FINDINGS #59, #81.
+      *Verified:* `flight_rope_dsky` runs the sequence against both Apollo 11
+      ropes in both build types. It is the strongest end-to-end assertion here —
+      rope image, instruction set, timing, priority control, keyboard interrupt,
+      PINBALL, channel 10 and the relay decode all have to be right, and nothing
+      partial looks like success.
+
+- [ ] **V37 is entered but never dispatched.** After `V36E` then `V37E 00E` the
+      PROG field stays blank instead of showing `00`, through 25 000 000 MCTs.
+      `V37XEQ` (04,2330), `DSPMM` (04,2636) and `DSPMMJB` (40,3534) are never
+      reached and bank 40 never executes, so the verb reaches PINBALL's display
+      but not its handler. Not the display path: the same panel shows `PROG 88`
+      under the lamp test and `PROG 00` under Sundial E. FINDINGS #81.
+      *Verification:* a trace showing what breaks the chain between ENTER and
+      `V37XEQ`, and the fix, with `flight_rope_dsky` extended to assert
+      `PROG 00`.
+
+- [ ] **Nothing presses a key in the identity harness except one test.** Every
+      probe is a self-driving rope, which is why an undefined `uplinked` field
+      routed an arbitrary, build-dependent subset of `--press` keys through the
+      ground uplink for a long time without a single golden moving (FINDINGS
+      #81). `flight_rope_dsky` closes the hole for the flight ropes; a keyed
+      probe with a committed golden would close it properly.
+      *Verification:* a probe under `tools/probes/` that keys the DSKY and whose
+      golden is byte-identical across build types and platforms.
 - [x] **`mp3a` during a stolen MCT — settled at the gates, and we had it
       backwards.** INKL suppresses the order-code decode for the length of the
       steal: it drives SQ7_n high through A3 gate U3014, killing

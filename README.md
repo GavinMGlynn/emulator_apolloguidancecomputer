@@ -53,15 +53,32 @@ modelled at all:
 
 ## Status
 
+**Every phase of `docs/COMPLETION_PLAN.md` is complete.** What remains is
+listed there as tails — work found while building, recorded as found.
+
 | Subsystem | State |
 |---|---|
-| Sequence generator, all 57 subinstructions | working, tables generated from the memo |
+| Sequence generator, 60 subinstructions incl. TCSAJ3 | working, tables generated from the memo and diffed against the gates |
 | Central registers, adder, banking | working |
 | Erasable + fixed memory, parity, superbanks | working |
 | Scaler, timers, the three alarms | working |
-| Priority control: counters, interrupts | working (PINC/MINC/PCDU/MCDU/DINC) |
-| Probe suite + golden regression | working — 26 instruction timings asserted against the memo |
-| Serial counters (SHINC/SHANC), CDU, IMU, DSKY | **not yet** |
+| Priority control: counters, interrupts | working — PINC/MINC/PCDU/MCDU/DINC/SHINC/SHANC |
+| DSKY: 13 relay banks, keyboard, flash, lamps | working |
+| Uplink, downlink, CDU, IMU, telemetry | working |
+| Frontends | headless (deterministic) and SDL3 with PNG capture |
+| Block I | a second core, `src/core_block1` — a different machine, not a revision |
+
+Verification, in the order the project trusts it:
+
+| Oracle | What it says |
+|---|---|
+| Gate netlists | **1672 rows across 36 subinstructions, 0 disagreeing** — every branch condition and all twelve timing pulses, read out of `ext/agc_simulation` |
+| Reference model | 2496-case differential sweep against `ext/agcplusplus` |
+| MIT's validation rope | run to completion, verdict read off the panel |
+| Probe goldens | 26 instruction timings asserted against AGC4 Memo #9, not merely frozen |
+| Flight ropes | Luminary 099 and Comanche 055 keyed from cold and answering — see below |
+
+21 CTest suites, green on Linux (clang and gcc), RHEL, macOS and Windows.
 
 Instruction timing is not just frozen in a golden, it is *checked against the
 memo*. All 26 instructions the timing probe measures come out at exactly the MCT
@@ -87,11 +104,18 @@ src/core/        the emulator: a static library with zero frontend dependencies
   cpu/           registers, sequence generator, control pulses, pulse tables
   memory/        erasable and fixed memory, banking, rope parity
   timing/        the 17-stage scaler and the hardware alarms
-  io/            channels, counter cells, interrupts
+  io/            channels, counter cells, interrupts, uplink
+  dsky/          relay banks, digit decode, keyboard, lamps and flash
+  peripherals/   CDU, IMU, telemetry
+src/core_block1/ the Block I machine — a different computer, not an earlier core
 src/frontend/
   headless/      deterministic, no wall clock, no host input — the probe engine
+  sdl/           an interactive DSKY, SDL3, with libpng screenshot capture
 tests/           one Unity suite per subsystem, one CTest entry each
-tools/           build_ropes.sh, gen_subinst_tables.py, oracle findings
+tools/           build_ropes.sh, the table generators, the probe harness
+  oracle/        the gate-level bench, the differential test, and FINDINGS.md
+  probes/        probe generators and their committed goldens
+docs/            USING_THE_AGC.md, PROJECT_STATUS.md, COMPLETION_PLAN.md
 docs/references/ the hardware documents every number in the core cites
 ext/             pinned submodules: Unity, and the three AGC references
 roms/  bios/     gitignored media, rebuilt by tools/build_ropes.sh
@@ -154,6 +178,20 @@ vendored as a submodule and read; none of it is compiled or linked into this
 emulator.
 
 `docs/references/README.md` indexes the rest.
+
+## Picking this up
+
+`CONTRIBUTING.md` is the short version of how to work on it, and
+`docs/USING_THE_AGC.md` is the operating manual. The working conventions in
+`CLAUDE.md` are not decoration: the reason this emulator can make the claims
+above is that every one of them was resolved from a document, a netlist or a
+schematic rather than by adjusting a parameter until a test passed.
+
+If you want something to do, the tails at the end of `docs/COMPLETION_PLAN.md`
+are real, self-contained, and each one names the verification it needs. The most
+interesting is probably **V37 is entered but never dispatched** — the flight
+software takes the keystrokes and displays them, but the major-mode handler is
+never reached, and finding out why means reading Luminary against a trace.
 
 ## Licence
 
