@@ -198,7 +198,7 @@ static void after_timepulse(agc1 *m)
             }
             /* Block I carries EXTEND as negative overflow in B rather than in a
              * flip-flop of its own — the order code space is that tight. */
-            if (((m->b >> 14) & 3u) == 0b10) {
+            if (((m->b >> 14) & 3u) == 0x2u) { /* 10: negative overflow */
                 m->extend_next = true;
             }
             if (rupt && !m->ignore_interrupts && !m->inhibit_interrupts

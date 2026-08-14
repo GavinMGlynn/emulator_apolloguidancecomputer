@@ -325,6 +325,16 @@ Recorded as found, per the working conventions.
 - [x] `agc_format_state` is the de facto golden format. **Resolved differently:**
       the probe goldens hold `SENT` lines and memory dumps, not the state line,
       so a field added to the trace format does not break the regression.
+- [x] **The build asked for C23, which the CI toolchains only half-implement.**
+      A newer local clang compiled C23 constructs clean while the runner's
+      pedantic build rejected them as extensions — the Block I core landed with
+      `0b01` literals nobody local could see. Resolved by declaring C17, which
+      every compiler we build on implements completely; nothing here needed C23.
+      *Verified:* reintroducing `0b01` now fails the local build with the same
+      diagnostic CI gave, and the release goldens are unchanged by the switch.
+- [x] **No CI job used gcc** — every one was clang or MSVC, including the Rocky
+      container. `-Wconversion` under gcc had three unseen errors waiting in
+      `tests/imu_suite.c`. Resolved with a `linux-gcc` preset and job.
 - [ ] `--sentinel` fires on "first non-zero", so a probe cannot mark a moment
       with a zero value. Fine for every probe so far; document or widen it
       before one needs to.

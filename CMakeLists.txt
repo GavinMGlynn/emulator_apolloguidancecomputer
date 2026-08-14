@@ -9,7 +9,13 @@ project(agc
     DESCRIPTION "Cycle-correct Apollo Guidance Computer (Block II) emulator"
     LANGUAGES C)
 
-set(CMAKE_C_STANDARD 23)
+# C17, not C23, and deliberately: every compiler we build on implements C17
+# completely, while C23 support varies between them. Asking for a standard the
+# CI toolchains only half-have means a developer with a newer compiler builds a
+# different language from the one CI builds — a C23 construct compiles clean on
+# their machine and fails the pedantic build on the runner, which is exactly how
+# the Block I core landed with binary literals in it. Nothing here needs C23.
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 

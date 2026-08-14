@@ -23,6 +23,20 @@ jobs:
       - run: cmake --preset linux-release && cmake --build --preset linux-release
       - run: ctest --preset linux-release --output-on-failure
 
+  # A second compiler, because until this job existed every one of these builds
+  # was clang or MSVC and gcc-only diagnostics accumulated unseen: -Wconversion
+  # caught three in the test suite the day this was added. gcc is also what a
+  # Linux contributor gets by typing `cc`, so "it builds" should mean it builds
+  # there too.
+  linux-gcc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git submodule update --init ext/unity
+      - run: sudo apt-get update && sudo apt-get install -y gcc cmake ninja-build python3
+      - run: cmake --preset linux-gcc && cmake --build --preset linux-gcc
+      - run: ctest --preset linux-gcc --output-on-failure
+
   rocky:
     runs-on: ubuntu-latest
     container: rockylinux:9

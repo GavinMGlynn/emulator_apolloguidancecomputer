@@ -16,9 +16,28 @@
 #define BIT(n) AGC1_BIT(n)
 #define BITS(a, b) (((1u << ((b) - (a) + 1)) - 1u) << ((a) - 1))
 
+/* The two sign bits taken as a pair, bit 16 above bit 15. They disagree exactly
+ * when the word is in overflow, which is what every test below is really asking.
+ * Spelled in hex to match `src/core/cpu/pulses.c`, and because a binary literal
+ * is C23 — accepted by a new enough compiler and a pedantic error on the rest. */
+#define SIGN_PLUS      0x0u /* 00 */
+#define SIGN_PLUS_OVF  0x1u /* 01 */
+#define SIGN_MINUS_OVF 0x2u /* 10 */
+#define SIGN_MINUS     0x3u /* 11 */
+
+/* BR1 is the high bit of the branch-register pair, BR2 the low. */
+#define BR1 0x2u
+#define BR2 0x1u
+
 static unsigned sign_bits(agc1_word w)
 {
     return (unsigned)((w >> 14) & 3u); /* bits 15 and 16 */
+}
+
+/* Bit 16 alone: set for a negative word, overflow or not. */
+static bool sign_is_minus(unsigned s)
+{
+    return s == SIGN_MINUS_OVF || s == SIGN_MINUS;
 }
 
 void agc1_update_adder(agc1 *m)
@@ -231,24 +250,24 @@ static void p_ctr(agc1 *m)
 static void p_tsgn(agc1 *m)
 {
     unsigned s = sign_bits(m->write_bus);
-    m->br = (agc1_word)((s == 0b10 || s == 0b11) ? (m->br | 0b10u) : (m->br & 0b01u));
+    m->br = (agc1_word)(sign_is_minus(s) ? (m->br | BR1) : (m->br & BR2));
 }
 
 static void p_tsgn2(agc1 *m)
 {
     unsigned s = sign_bits(m->write_bus);
-    m->br = (agc1_word)((s == 0b10 || s == 0b11) ? (m->br | 0b01u) : (m->br & 0b10u));
+    m->br = (agc1_word)(sign_is_minus(s) ? (m->br | BR2) : (m->br & BR1));
 }
 
 static void p_tmz(agc1 *m)
 {
-    m->br = (agc1_word)(m->write_bus == 0177777u ? (m->br | 0b01u) : (m->br & 0b10u));
+    m->br = (agc1_word)(m->write_bus == 0177777u ? (m->br | BR2) : (m->br & BR1));
 }
 
 static void p_tov(agc1 *m)
 {
     unsigned s = sign_bits(m->write_bus);
-    m->br = (agc1_word)((s == 0b01 || s == 0b10) ? s : 0u);
+    m->br = (agc1_word)((s == SIGN_PLUS_OVF || s == SIGN_MINUS_OVF) ? s : 0u);
 }
 
 static void p_trsm(agc1 *m)
@@ -272,9 +291,9 @@ static void p_krpt(agc1 *m)
 static void p_wovc(agc1 *m)
 {
     unsigned s = sign_bits(m->write_bus);
-    if (s == 0b01) {
+    if (s == SIGN_PLUS_OVF) {
         m->counters[AGC1_CNT_OVCTR] = AGC1_COUNT_UP;
-    } else if (s == 0b10) {
+    } else if (s == SIGN_MINUS_OVF) {
         m->counters[AGC1_CNT_OVCTR] = AGC1_COUNT_DOWN;
     }
 }
@@ -282,7 +301,7 @@ static void p_wovc(agc1 *m)
 static void p_wovi(agc1 *m)
 {
     unsigned s = sign_bits(m->write_bus);
-    if (s == 0b01 || s == 0b10) {
+    if (s == SIGN_PLUS_OVF || s == SIGN_MINUS_OVF) {
         m->overflow = true;
     }
 }
@@ -293,7 +312,7 @@ static void p_wovr(agc1 *m)
     if (counter >= AGC1_COUNTER_COUNT) {
         return;
     }
-    if (sign_bits(m->write_bus) == 0b01) {
+    if (sign_bits(m->write_bus) == SIGN_PLUS_OVF) {
         switch (counter) {
         case AGC1_CNT_TIME1: m->counters[AGC1_CNT_TIME2] = AGC1_COUNT_UP; break;
         case AGC1_CNT_TIME3: m->interrupts[AGC1_RUPT_T3RUPT] = true; break;

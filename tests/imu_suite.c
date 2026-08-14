@@ -177,7 +177,7 @@ static void test_a_commanded_angle_is_driven_out_and_read_back(void)
      *
      * This is the check the plan named: a known attitude commanded through
      * coarse align and the CDU counters read back against it. */
-    const unsigned commanded = 100;
+    const agc_word commanded = 100;
     set_ch12(AGC_CH12_COARSE_ALIGN);
     m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUXD] = commanded;
     m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUYD] = commanded;

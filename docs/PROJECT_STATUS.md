@@ -260,3 +260,17 @@ Each has a reason and a cost to close, and each is a named item in
 - **All four FINDINGS rows that were open against the memo are now closed** (#9,
   #10, #11, #13). The remaining unverified corner is `mp3a` during an MCT stolen
   by priority control — faithful to the netlist, confirmed by nothing else.
+
+## The build itself
+
+- **C17, not C23, and on purpose.** The standard a project declares has to be
+  one every compiler it builds on actually implements. Asking for C23 when the
+  CI toolchains only partly have it means a developer with a newer compiler
+  builds a different language from the one CI builds: the construct compiles
+  clean locally and fails the pedantic build on the runner. That is precisely
+  how the Block I core landed with C23 binary literals in it. Nothing in the
+  codebase needs C23, and the switch left every golden byte-identical.
+- **Two compilers, not one.** Every CI job was clang or MSVC until the
+  `linux-gcc` job was added — the Rocky container installs clang too — so
+  gcc-only diagnostics had nowhere to surface. `-Wconversion` found three the
+  day the job was added. Five jobs now: clang, gcc, Rocky, macOS, Windows.
