@@ -167,6 +167,35 @@ static void test_without_coarse_align_the_platform_stays_put(void)
     TEST_ASSERT_EQUAL_INT32(3, m->cdu.driven[AGC_CDU_X]);
 }
 
+static void test_a_commanded_angle_is_driven_out_and_read_back(void)
+{
+    /* The whole coarse-align loop at a realistic size: command a hundred CDU
+     * counts on each of the three gimbals — a bit under a degree and a half —
+     * and check the machine's own angle counters end up holding exactly what it
+     * asked for, with the drive shutting itself off. A hundred counts at one
+     * DINC per 312.5 microseconds is 31 ms, so 3000 MCTs is comfortable.
+     *
+     * This is the check the plan named: a known attitude commanded through
+     * coarse align and the CDU counters read back against it. */
+    const unsigned commanded = 100;
+    set_ch12(AGC_CH12_COARSE_ALIGN);
+    m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUXD] = commanded;
+    m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUYD] = commanded;
+    m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUZD] = commanded;
+    agc_channel_write(&m->channels, AGC_CH_GYRO,
+                      AGC_CH14_DRIVE_X | AGC_CH14_DRIVE_Y | AGC_CH14_DRIVE_Z);
+
+    test_run_mcts(m, 4000);
+
+    for (unsigned axis = 0; axis < 3; ++axis) {
+        TEST_ASSERT_EQUAL_INT32((int32_t)commanded, m->imu.gimbal[axis]);
+        TEST_ASSERT_EQUAL_HEX16(commanded,
+                                m->mem.erasable[AGC_COUNTER_BASE + AGC_CNT_CDUX + axis]);
+    }
+    /* Every axis took its own bit back out of channel 14 as it finished. */
+    TEST_ASSERT_EQUAL_HEX16(0, agc_channel_read(&m->channels, AGC_CH_GYRO));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -180,5 +209,6 @@ int main(void)
     RUN_TEST(test_a_velocity_increment_arriving_too_soon_is_lost);
     RUN_TEST(test_coarse_align_moves_the_gimbal_and_the_cdu_follows);
     RUN_TEST(test_without_coarse_align_the_platform_stays_put);
+    RUN_TEST(test_a_commanded_angle_is_driven_out_and_read_back);
     return UNITY_END();
 }

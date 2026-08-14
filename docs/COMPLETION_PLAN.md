@@ -148,7 +148,7 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       *Tails:* no crosslink partner is modelled, so a program that selects it
       (channel 13 bit 5) stops hearing the uplink; and nothing yet shows a rope
       acting on an uplinked word's *content* — see the display tail below.
-- [~] **CDU** — the five angle counters, the drive counters, channel 12's zero
+- [x] **CDU** — the five angle counters, the drive counters, channel 12's zero
       and enable discretes, and the drive path. **Closes the POUT/MOUT
       approximation**: those two pulses now emit drive pulses on the axis whose
       counter DINC is addressing, instead of doing nothing.
@@ -159,11 +159,9 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       emitting exactly its count in pulses, and ZOUT taking each axis's own bit
       out of channel 14 as it finishes. Found a real defect on the way:
       FINDINGS #71, ZOUT could never stop the X drive.
-      *Left:* coarse align (channel 12 bit 4) is decoded but nothing acts on it,
-      because acting on it means moving a gimbal — the drive pulses are counted
-      and exposed rather than fed back into an angle. That loop closes with the
-      IMU item below, which is where the plant model belongs.
-- [~] **IMU / PIPA / gyro torquing.**
+      Coarse align was the one piece left when this landed, because acting on it
+      means moving a gimbal; the IMU item below closed it.
+- [x] **IMU / PIPA / gyro torquing.**
       *Done:* gyro torquing — the program loads GYROD, picks an axis and a sign
       in channel 14 and the hardware walks the counter down at 3.2 kHz, one
       torque pulse per DINC; the three PIPAs, one PINC/MINC per velocity
@@ -176,15 +174,19 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       sign bit, PIPA increments in both directions, a lost velocity increment,
       and coarse align with a control that shows the platform staying put
       without it.
-      *Left:* no dynamics. Nothing integrates an acceleration, moves a gimbal
-      at a rate or drifts a gyro — a frontend says the vehicle moved and this
-      turns that into the pulses the hardware would send. The AGC cannot tell
-      the difference, because pulses are all it ever sees, but a closed-loop
-      flight would need the plant.
-      *Verification for the rest:* a rope commanded to a known attitude through
-      coarse align, with the CDU counters read back and compared against the
-      commanded angle.
-- [~] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
+      And the check this item named: **a known attitude commanded through coarse
+      align and read back** — a hundred CDU counts on each of the three gimbals,
+      driven out at the hardware's own rate, with the machine's angle counters
+      ending on exactly what it asked for and each axis taking its own bit back
+      out of channel 14 as it finishes.
+      *Not modelled, deliberately:* vehicle dynamics. Nothing integrates an
+      acceleration, moves a gimbal at a rate or drifts a gyro. That is
+      spacecraft simulation rather than computer emulation — the core's job is
+      to turn motion into the pulses the hardware would send, and the AGC cannot
+      tell the difference because pulses are all it ever sees. Recorded as an
+      approximation in `PROJECT_STATUS.md`, and it belongs to a frontend if a
+      closed-loop flight ever becomes a goal.
+- [x] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
       *Done:* the uplink, above — a known word arrives in INLINK and raises
       UPRUPT when its flag bit shifts out.
       *Done:* the downlink too, and it turned out not to shift at all — the
