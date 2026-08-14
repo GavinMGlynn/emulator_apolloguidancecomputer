@@ -530,8 +530,27 @@ static void p_wovr(agc *m)
  * PROVISIONAL: POUT and MOUT should also drive the CDU error counters and the
  * gyro torque pulses. There is no CDU/IMU subsystem yet, so those channels are
  * counted but not consumed; see docs/COMPLETION_PLAN.md. */
-static void p_pout(agc *m) { (void)m; }
-static void p_mout(agc *m) { (void)m; }
+/* The drive pulses DINC emits on its way toward zero. Which axis they belong
+ * to is whichever drive counter S is addressing — the sequence generator has no
+ * other way to know, and neither have we. A pulse on a counter that is not a
+ * CDU drive counter is the gyro's, and is left for the IMU item. */
+static void p_pout(agc *m)
+{
+    unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
+    enum agc_cdu_axis axis = agc_cdu_axis_of_drive_counter(counter);
+    if (axis != AGC_CDU_AXES) {
+        agc_cdu_drive(m, axis, true);
+    }
+}
+
+static void p_mout(agc *m)
+{
+    unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
+    enum agc_cdu_axis axis = agc_cdu_axis_of_drive_counter(counter);
+    if (axis != AGC_CDU_AXES) {
+        agc_cdu_drive(m, axis, false);
+    }
+}
 
 static void p_zout(agc *m)
 {
@@ -547,11 +566,20 @@ static void p_zout(agc *m)
     case AGC_CNT_CDUYD:
     case AGC_CNT_CDUZD: {
         /* Clear this axis's drive-enable bit in channel 14: bit 15 for X, 14
-         * for Y, 13 for Z. */
+         * for Y, 13 for Z, and on down through the trunnion and shaft.
+         *
+         * Through the raw channel, not agc_cpu_*_channel. Those two wrap the
+         * bit-15/16 fixup a *program* sees — a channel carries write-line bits
+         * 1-14 and 16, with no bit 15 of its own — so reading channel 14 and
+         * writing it back puts bit 16 into bit 15 on the way through. The X
+         * axis lives in bit 15, so a read-modify-write could never turn it off:
+         * the sign extension put it straight back, and the drive ran for ever.
+         * ZOUT is hardware clearing a flip-flop, not a program storing a word,
+         * and it has no business going through that path. */
         unsigned bit = 15u - (counter - AGC_CNT_CDUXD);
-        agc_word v = agc_cpu_read_channel(m, AGC_CH_GYRO);
-        agc_cpu_write_channel(m, AGC_CH_GYRO,
-                              agc_w(v & ~(unsigned)AGC_BIT((int)bit)));
+        agc_word v = agc_channel_read(&m->channels, AGC_CH_GYRO);
+        agc_channel_write(&m->channels, AGC_CH_GYRO,
+                          agc_w(v & ~(unsigned)AGC_BIT((int)bit)));
         break;
     }
     default:

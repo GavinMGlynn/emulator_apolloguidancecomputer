@@ -142,10 +142,21 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       *Tails:* no crosslink partner is modelled, so a program that selects it
       (channel 13 bit 5) stops hearing the uplink; and nothing yet shows a rope
       acting on an uplinked word's *content* — see the display tail below.
-- [ ] **CDU** — the five angle counters, the error counters, coarse align, CDU
-      ZERO. Closes the POUT/MOUT approximation.
-      *Verification:* probes on PCDU/MCDU pulse trains against the counter
-      sequences; channel 12 discrete edges.
+- [~] **CDU** — the five angle counters, the drive counters, channel 12's zero
+      and enable discretes, and the drive path. **Closes the POUT/MOUT
+      approximation**: those two pulses now emit drive pulses on the axis whose
+      counter DINC is addressing, instead of doing nothing.
+      *Verified:* `cdu_suite` (11 tests) — angle counters stepped by PCDU/MCDU
+      through both ones'-complement zeroes, pulses lost when one arrives before
+      the last is serviced, the zero discretes stopping the converter without
+      touching the counters, a loaded drive counter walking to minus zero while
+      emitting exactly its count in pulses, and ZOUT taking each axis's own bit
+      out of channel 14 as it finishes. Found a real defect on the way:
+      FINDINGS #71, ZOUT could never stop the X drive.
+      *Left:* coarse align (channel 12 bit 4) is decoded but nothing acts on it,
+      because acting on it means moving a gimbal — the drive pulses are counted
+      and exposed rather than fed back into an angle. That loop closes with the
+      IMU item below, which is where the plant model belongs.
 - [ ] **IMU / PIPA / gyro torquing.**
       *Verification:* gyro pulse counts per channel-14 command.
 - [~] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**

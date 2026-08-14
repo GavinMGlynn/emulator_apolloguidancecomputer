@@ -18,6 +18,7 @@
 #include "io/counters.h"
 #include "io/uplink.h"
 #include "memory/memory.h"
+#include "peripherals/cdu.h"
 #include "timing/scaler.h"
 
 /* Clock constants, from the timer sheets. */
@@ -35,6 +36,7 @@ typedef struct agc {
     agc_scaler scaler;
     agc_dsky dsky;
     agc_uplink uplink;
+    agc_cdu cdu;
 
     /* Timing pulses since reset. Divided by 12 this is MCTs; the scaler is
      * clocked from it every AGC_SCALER_DIVISOR pulses. */

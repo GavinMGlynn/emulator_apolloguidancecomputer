@@ -88,7 +88,9 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | DSKY — lamps and the flash (channel 11, scaler stages 16/17) | Working | `dsky_suite`: the flash runs without the program, and in antiphase with KEY REL |
 | DSKY — keyboard (channels 15/16, KEYRUPT1/2) | Working | `dsky_suite`; a keypress into Luminary 099 lights KEY REL, `CHARIN`'s documented response |
 | DSKY — PRO/STBY key, RESTART and STBY lamps | **Missing** | Start-stop logic rather than channel traffic; see gaps |
-| CDU / IMU / gyro / PIPA | **Missing** | — |
+| CDU — angle counters, drive counters, channel 12 discretes | Working | `cdu_suite`; POUT/MOUT now drive, closing the approximation |
+| CDU — coarse align, and the gimbal on the other end | **Missing** | Decoded but nothing acts on it; needs the IMU plant |
+| IMU / gyro / PIPA | **Missing** | — |
 | Downlink / radar | **Missing** | DOWNRUPT and RADARRUPT are wired to WOVR, but nothing drives them |
 | Headless frontend | Working | Used for every rope boot above |
 | SDL frontend | **Missing** | — |
