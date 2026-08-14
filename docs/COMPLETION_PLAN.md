@@ -14,8 +14,13 @@ spelled out.
 - [x] Tree, CMake/Ninja/Clang C23, presets, strict warnings + `-Werror`.
       *Verified:* debug and release both build clean.
 - [x] Four-platform CI (Linux, Rocky, macOS, Windows) running both build types.
-      *Verified:* workflow committed before the first subsystem, per §3 of the
-      guide. **Needs a first green run once the repo has a remote.**
+      *Verified:* **green on all four**, as of the "Fix the Rocky CI job"
+      commit. It was red on every push before that, and only ever on the Rocky
+      container job: `rockylinux:9` has no git, so `actions/checkout` fell back
+      to a REST tarball with no `.git` and the submodule step three lines later
+      died with "not a git repository". Installing git *before* the checkout is
+      the fix, and is the trap §3 of the guide documents by name — we had the
+      advice and walked into it anyway.
 - [x] Unity vendored; one CTest entry per suite.
       *Verified:* `ctest` green.
 - [x] References mirrored into `docs/references/`; oracles vendored in `ext/`.
@@ -73,8 +78,9 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       counters at 3.2 kHz cost a third of the machine (#44-45).
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
-      *Verified:* goldens identical on `-O0` and `-O3 -flto`. **Still to
-      confirm on the other three CI platforms** once the workflow has run.
+      *Verified:* goldens identical on `-O0` and `-O3 -flto`, **and now on all
+      four CI platforms** — which is the point of them: the numbers are emulated
+      timing pulses, so a platform where one differs has a real bug.
 - [x] **Differential-test the instruction set against the oracle.**
       `tools/oracle/differential.py` sweeps operand values chosen for the
       awkward cases and compares full 16-bit registers, not just memory.
@@ -87,10 +93,10 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       identity harness for any future optimization. `tools/hash_ropes.py`
       hashes the whole of erasable memory, the register file and the counter
       cells after 200 000 MCTs.
-      *Verified:* 9 ropes, byte-identical between `-O0` and `-O3 -flto`, as the
-      `rope_state_hashes` CTest. Skips cleanly when `roms/` is empty.
-      **Still to confirm on the other three CI platforms** — but note CI has no
-      ropes, so this one is developer-side only.
+      *Verified:* 10 ropes, byte-identical between `-O0` and `-O3 -flto`, as the
+      `rope_state_hashes` CTest. Skips cleanly when `roms/` is empty, which is
+      what CI does — there are no ropes there, so this one stays developer-side
+      by design.
 - [x] **Build a runnable oracle.** `tools/oracle/build_oracle.sh` links the
       Block II core out of `ext/agcplusplus` with no sockets, DSKY or threads,
       and `ORACLE_TRACE=1` logs one line per timing pulse for a direct diff

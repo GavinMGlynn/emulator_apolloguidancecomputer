@@ -28,8 +28,11 @@ The rest of what can be said today:
   a peripheral stealing 31 whole MCTs from a program that never interacted with
   it.
 - Results are bit-identical between the `-O0` and `-O3 -flto` builds — across
-  the probe goldens and across nine flight and test ropes run for 200 000 MCTs
-  each.
+  the probe goldens and across ten flight and test ropes run for 200 000 MCTs
+  each — **and the probe goldens are now identical on all four CI platforms**
+  (Linux, Rocky, macOS, Windows). That is what makes them worth having: the
+  numbers are emulated timing pulses, not measurements, so a platform where one
+  differs has a real bug in us.
 
 **The rope image layout is confirmed against physical hardware.** LM131R1
 assembled from its own source equals the dump read back off the real rope module
