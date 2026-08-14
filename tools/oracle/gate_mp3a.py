@@ -56,9 +56,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import gate_sim  # noqa: E402
 from gate_crosspoint import (  # noqa: E402
-    DIVIDE_QUIET,
     SIM_ROOT,
     SQ_BITS,
+    STAGE_LATCHES,
     SUBINSTRUCTIONS,
 )
 
@@ -67,8 +67,6 @@ from gate_crosspoint import (  # noqa: E402
 #: stopping at MP3A and arguing about what A7 would do with it.
 MODULES = ["sq_register", "stage_branch", "crosspoint_nqi", "crosspoint_ii",
            "service_gates"]
-
-STAGE_LINES = ("ST0_n", "ST1_n", "STD2", "ST3_n")
 
 #: The gate that forms the carry into bit 1, and the line under test.
 CINORM = "__A07_2__CINORM"
@@ -93,11 +91,10 @@ def read_at(netlist, quiescent, name: str, timing_pulse: int, inkl: int,
     bits = ((order >> 2) & 1, (order >> 1) & 1, order & 1, (qc >> 1) & 1, qc & 1)
     forces.update(zip(SQ_BITS, bits, strict=True))
     forces.update(SQEXT=ext, SQEXT_n=1 - ext, SQR10=0, SQR10_n=1)
-    forces.update(ST0_n=1, ST1_n=1, STD2=0, ST3_n=1)
-    line = STAGE_LINES[stage]
-    forces[line] = 1 if line == "STD2" else 0
+    for i, (true_half, complement) in enumerate(STAGE_LATCHES):
+        forces[true_half] = (stage >> i) & 1
+        forces[complement] = 1 - ((stage >> i) & 1)
     forces.update(BR1=0, BR1_n=1, BR2=0, BR2_n=1)
-    forces.update(DIVIDE_QUIET)
 
     # The line under test. Everything else about the steal — which counter, what
     # it is counting — lives in modules this bench does not load; INKL is the

@@ -268,6 +268,17 @@ Each has a reason and a cost to close, and each is a named item in
   merely reaching the same answer, and `gate_level_mp3a_under_steal` re-reads it
   from the netlist on every run.
 
+## The gate sweep now covers every subinstruction we model
+
+1672 rows across 36 subinstructions, none disagreeing. The divide sequences were
+the last gap, and closing it needed the stage counter driven at its latches
+rather than at its decoded outputs — both halves of each cross-coupled pair,
+because the stage decodes read the complements directly. Everything the old
+bench used to pin by hand then falls out of the netlist on its own. FINDINGS #80
+records the three further hardware facts that had to be supplied: the T12USE
+latch, the four-phase clock, and the fact that divide MCTs end at T3 and so run
+in windows offset against the timing-pulse count.
+
 ## The Computer Test Set
 
 Only as much of it as TCSAJ3 needs, and no more. The AGC's ground equipment

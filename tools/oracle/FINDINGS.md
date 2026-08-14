@@ -318,7 +318,7 @@ cross-point output at all (it lives in A15; FINDINGS #16).
 |---|---|
 | 51 | **A subset of a netlist is not the netlist.** Open-drain nets are wired-ANDs whose pull-up sits on whichever module had room — `WA_n` is pulled up on A6, `Z16_n` over on A11. Loading four modules picks up drivers whose pull-up is out of scope, and such a net latches low the first time anything pulls it, which is how DAS1 first appeared to assert `Z15`, `Z16` and `L16` that no source prints. The simulator now supplies the missing pull-up explicitly. |
 | 52 | **A zero-timing evaluation has no opinion about a latch.** NEAC, PIFL and GNHNC are SR latches; with neither term asserted they hold state in hardware and ring in the model. Rather than hide it, `settle()` returns the ringing set and `read()` refuses to report a value from it — so a latch can never be mistaken for a control pulse. Both memo pulses that *are* latches are reported by their set term instead. |
-| 53 | **The idle divide counter leaks.** The grey counter in A4 free-runs with no divide in progress, and its arbitrary state reached the cross-point matrix as a phantom `WB` on DAS1 T3. The bench holds the divide conditions quiet for the non-divide sequences it probes; probing the DV sequences needs that counter driven stage by stage, which it does not attempt. |
+| 53 | **The idle divide counter leaks — resolved, see #80.** The bench used to force the decoded stage lines and leave the stage counter's own latches floating, so the divide conditions were arbitrary and had to be pinned by hand. Driving the latches instead makes every divide condition fall out combinationally, and the DV sequences became probeable. |
 
 ## The DSKY
 
@@ -523,3 +523,33 @@ worth chasing, and both times the answer came from the netlist rather than from
 a document. AGC4 Memo #9 does not mention MP3A at all, and `ext/agcplusplus`
 reaches the same arithmetic by keeping NEACOF at MP3 T12 — under which the
 question cannot even be posed, because its `no_eac` covers the whole of MP3.
+
+## #80 — Covering the divide in the gate sweep
+
+Four things had to be supplied before DV0-DV4 could be read from the gates, and
+each one is a fact about the hardware rather than a knob:
+
+| # | What was missing | What it turned out to be |
+| - | ---------------- | ------------------------ |
+| 80a | The stage counter | Drive the three **latches** `STG1/2/3` in A4, not the four decoded stage lines — and drive *both halves* of each cross-coupled pair, because the decodes read the complements directly (`ST3 = NOR(STG3, STG2_n, STG1_n)`). Forcing only the true halves left each latch internally inconsistent and made 120 of 1440 rows disagree. The counter is plain 3-bit binary; only the order it is stepped in — 0, 1, 3, 7, 6, 4 — is grey, and stage 5 is never visited. With the latches driven, every divide condition falls out combinationally (`DV1 = NOR(DIV_n, ST1_n)` and so on), so the hand-pinned `DIVIDE_QUIET` could go entirely. |
+| 80b | The T12USE latch | What makes a divide's MCT end at T3. Set by `DVST`, reset by `RSTSTG` or `GOJAM` — both control pulses in the tables, so where it is set and cleared is read off the memo rather than fitted to the gates. Left floating it made the gates emit the divide's own `RU WB` restage at T3 of *every* subinstruction. |
+| 80c | The four-phase clock | `CLXC = NOR(TSGU_n, BR1, PHS4_n)` and `RB1F = NOR(BR1_n, PHS4_n, TSGU_n)` are gated by a phase, which the memo's per-timing-pulse tables never mention. With `PHS4_n` at its quiescent level both are dead, which is why the divide's branch-dependent T2 row read as empty. Nothing else in these four modules looks at a phase. |
+| 80d | Each stage's own window | Divide MCTs end at T3, so the stages are offset against the timing-pulse count: DV0 runs T1-T3, DV1/DV3/DV7/DV6 run T4-T12 and then T1-T3 of the next cycle, DV4 runs T4-T10. Reading a stage outside its window asks the matrix about a state the machine never reaches. |
+
+Two smaller things fell out on the way:
+
+- **`P1XP10` and `P8XP5` are real cross-point outputs.** CLAUDE.md calls them the
+  implicit pulses AGCPlusPlus adds to divide that the memo omits. They are
+  `n1XP10 = NOR(T01_n, DV0_n)` and `n8XP5 = NOR(T08_n, DV1_n)` — so the gates
+  confirm not just that the pulses exist but the single timing pulse each belongs
+  to, which is more than the reference model alone was saying.
+- **`CLXC`/`RB1F` cannot be compared, and it is not a defect.** They are the two
+  arms of a branch condition the hardware resolves *inside* the timing pulse:
+  each re-tests BR1 itself, and on every row carrying them TSGU has just
+  rewritten BR1 in that same pulse. Our tables issue both and let each decide —
+  which is what `SELF_CONDITIONAL` in the generator is for — while the bench,
+  holding BR at the value the row was entered with, sees the arm that value
+  selects. Neither is wrong, so they are compared out on any row carrying TSGU,
+  exactly as ZIP's run-time operands already were.
+
+**1672 rows across 36 subinstructions, 0 disagreeing** — up from 1392 across 29.

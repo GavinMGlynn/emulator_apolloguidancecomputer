@@ -89,6 +89,19 @@ SUBINSTRUCTIONS: dict[str, tuple[int, int, int, int, str]] = {
     "MP0": (1, 7, 0, 0, "MP0"),
     "MP1": (1, 7, 0, 1, "MP1"),
     "MP3": (1, 7, 0, 3, "MP3"),
+    # Divide. The stage counter walks 0-1-3-7-6-4 rather than counting, which is
+    # the only grey thing about it — the counter itself is plain binary, and
+    # stage 5 is simply never visited. The decode is DV's, and the stage is
+    # forced at the latches, so the check line only has to confirm that DIV came
+    # up in the right stage group: the gates give each *group* a line
+    # (DV1376 for stages 1/3/7/6, DV3764 for 3/7/6/4) rather than one line per
+    # stage, because the divide's rows are shared between stages.
+    "DV0": (1, 1, 0, 0, "__A04_1__DV0"),
+    "DV1": (1, 1, 0, 1, "DV1"),
+    "DV3": (1, 1, 0, 3, "DV3764"),
+    "DV7": (1, 1, 0, 7, "DV1376"),
+    "DV6": (1, 1, 0, 6, "DV1376"),
+    "DV4": (1, 1, 0, 4, "DV4"),
 }
 
 #: memo mnemonic -> net that carries it.  A trailing `_n` marks the active-low
@@ -177,33 +190,78 @@ PULSE_NETS: dict[str, str] = {
     # latch is both truer to the hardware and readable in a zero-timing model,
     # where an SR latch with neither term asserted has no defined level.
     "NEACON": "MP0T10",
-    "PIFL(set)": "__A06_1__DVXP1",
+    "PIFL": "__A06_1__DVXP1",
     "TL15/NEACOF": "TL15",
+    # The two pulses AGCPlusPlus adds to divide that the memo's tables omit
+    # (CLAUDE.md calls them the implicit 1xP10 and 8xP5). They are ordinary
+    # cross-point outputs — `n1XP10 = NOR(T01_n, DV0_n)` and
+    # `n8XP5 = NOR(T08_n, DV1_n)` — so the gates confirm both the pulse and the
+    # single timing pulse it belongs to, which is a stronger statement than the
+    # reference model alone was making.
+    "P1XP10": "n1XP10",
+    "P8XP5": "n8XP5",
 }
 
-STAGE_LINES = ("ST0_n", "ST1_n", "STD2", "ST3_n")
-
-#: The divide grey counter (module A4) is a free-running latch chain: with no
-#: divide in progress and no clock, a zero-timing evaluation leaves it in an
-#: arbitrary state, and that state leaks into the cross-point matrix — it was
-#: seen adding a WB to DAS1 T3 that no source prints.  Every subinstruction
-#: here is a non-divide one, so its divide conditions are held quiet, which is
-#: what the machine's own grey counter holds them at.  Probing the DV
-#: sequences needs the counter driven stage by stage instead; that is a
-#: separate job and this script does not pretend to do it.
-DIVIDE_QUIET = {
-    "DIV_n": 1,
-    "DIVSTG": 0,
-    "DV1": 0,
-    "DV1_n": 1,
-    "DV4": 0,
-    "DV4_n": 1,
-    "DV4B1B": 0,
-    "DV1376": 0,
-    "DV1376_n": 1,
-    "DV376_n": 1,
-    "DV3764": 0,
+#: Where a subinstruction's rows actually live. Divide is the only thing that
+#: needs it: its Memory Cycle Times end at T3 rather than T12, so the stages are
+#: offset against the timing-pulse count. DV0 runs T1-T3 and hands over; DV1,
+#: DV3, DV7 and DV6 each run T4-T12 and then T1-T3 of the following cycle; DV4
+#: runs T4-T10 and ends the whole divide with RSTSTG. Reading a stage outside
+#: its own window asks the matrix what it would do in a state the machine never
+#: reaches, and gets an answer that means nothing.
+PULSE_WINDOW: dict[str, tuple[int, int]] = {
+    "DV0": (1, 3),
+    "DV4": (4, 10),
 }
+
+#: The stage counter's own three latches in module A4, least significant first,
+#: each as the (true, complement) pair of one cross-coupled NOR latch. Driving
+#: *these* rather than the four decoded stage lines is what lets this bench
+#: reach the divide sequences.
+#:
+#: Both halves have to be driven. The stage decodes read the complements
+#: directly — ST3 is `NOR(STG3, STG2_n, STG1_n)` — so forcing only the true
+#: halves leaves each latch internally inconsistent and the decodes wrong; doing
+#: exactly that made 120 of 1440 rows disagree, which is how the pairing below
+#: came to be read off the netlist rather than assumed. The partners are found
+#: by the cross-coupling itself: the complement of STGn is the net that appears
+#: in STGn's driver and has STGn in its own.
+#:
+#: The counter is a plain 3-bit binary one; only the order it is stepped in is
+#: grey. Read straight off the netlist by sweeping all eight combinations: 000
+#: brings up ST0_n, 001 ST1_n, 010 STD2, 011 ST3_n, 100 ST4_n, and 011/110/111
+#: bring up ST376 — which is what DV376, DV1376 and DV3764 group. 101 decodes to
+#: nothing, and nothing is what the divide's 0-1-3-7-6-4 walk ever puts there.
+STAGE_LATCHES = (
+    ("__A04_1__STG1", "net_U4004_Pad11"),
+    ("__A04_1__STG2", "net_U4009_Pad10"),
+    ("__A04_1__STG3", "net_U4013_Pad1"),
+)
+
+
+#: The T12USE latch (module A4), which is what makes a divide's Memory Cycle
+#: Time end at T3 instead of T12. It is a cross-coupled NOR pair — set by DVST,
+#: reset by RSTSTG or GOJAM — and like NEAC and PIFL it has no meaningful level
+#: in a zero-timing evaluation, so the bench has to supply it.
+#:
+#: It is supplied from the *memo*, not fitted to the gates: DVST and RSTSTG are
+#: control pulses in the tables themselves, so where the latch is set and where
+#: it is cleared can simply be read off. DV0 raises DVST at T2, every later
+#: stage re-raises it at its own T2, and DV4 drops the whole divide with RSTSTG
+#: at T8. Anything that is not a divide never raises DVST at all.
+#:
+#: This matters beyond the divide rows. Leaving the latch floating made the
+#: gates emit the divide's own `RU WB` restage at T3 of *every* subinstruction —
+#: 120 rows of 1440 — which is the leak the old bench was papering over when it
+#: pinned the divide conditions by hand.
+def t12use_set(name: str, timing_pulse: int) -> bool:
+    if not name.startswith("DV"):
+        return False
+    if name == "DV0":
+        return timing_pulse >= 2      # DVST at T2 sets it; T1 precedes the divide
+    if name == "DV4":
+        return timing_pulse <= 8      # RSTSTG at T8 ends it, and T8 itself still sees it
+    return True                       # entered set, and re-set at this stage's T2
 
 
 class CrossPointBench:
@@ -222,24 +280,40 @@ class CrossPointBench:
         #: latches that cannot converge with no clock (GNHNC's, in practice).
         self._ringing: frozenset[str] = frozenset()
 
-    def _forces(self, name: str, branch: int) -> dict[str, int]:
+    def _forces(self, name: str, branch: int, timing_pulse: int) -> dict[str, int]:
         ext, order, qc, stage, _ = SUBINSTRUCTIONS[name]
         bits = ((order >> 2) & 1, (order >> 1) & 1, order & 1, (qc >> 1) & 1, qc & 1)
         forces = dict(self.quiescent)
         forces.update(zip(SQ_BITS, bits, strict=True))
         forces.update(SQEXT=ext, SQEXT_n=1 - ext, SQR10=0, SQR10_n=1)
-        forces.update(ST0_n=1, ST1_n=1, STD2=0, ST3_n=1)
-        line = STAGE_LINES[stage]
-        forces[line] = 1 if line == "STD2" else 0
+        # The stage counter, driven at its latches. Everything downstream is
+        # combinational from here — the four stage decodes, ST4, ST376, and
+        # every divide condition (DV0/DV1/DV1376/DV3764/DV4 are each just
+        # `NOR(DIV_n, <a stage decode>)`) — so nothing needs holding quiet.
+        # An earlier version of this bench forced the decoded lines and left the
+        # latches floating, which made the divide conditions arbitrary and had
+        # to pin them by hand; that is why the DV sequences went unprobed.
+        for i, (true_half, complement) in enumerate(STAGE_LATCHES):
+            bit = (stage >> i) & 1
+            forces[true_half] = bit
+            forces[complement] = 1 - bit
         br1, br2 = (branch >> 1) & 1, branch & 1
         forces.update(BR1=br1, BR1_n=1 - br1, BR2=br2, BR2_n=1 - br2)
-        forces.update(DIVIDE_QUIET)
+        forces["T12USE_n"] = 0 if t12use_set(name, timing_pulse) else 1
+        # The four-phase clock inside a timing pulse. The memo's tables are per
+        # timing pulse and say nothing about phase, but two cross-point outputs
+        # are gated by one: `CLXC = NOR(TSGU_n, BR1, PHS4_n)` and
+        # `RB1F = NOR(BR1_n, PHS4_n, TSGU_n)`. Left at its quiescent level PHS4_n
+        # sits high and both are dead, which is why the divide's branch-dependent
+        # T2 row read as empty from the gates. Nothing else in these four modules
+        # reads a phase, so asserting the one they use is the whole of it.
+        forces.update(PHS4=1, PHS4_n=0)
         return {net: value for net, value in forces.items() if net in self.nets}
 
     def pulses_at(self, name: str, timing_pulse: int, branch: int) -> set[str]:
         """The control pulses the gates assert at one timing pulse."""
         sim = gate_sim.Simulator(self.netlist)
-        forces = self._forces(name, branch)
+        forces = self._forces(name, branch, timing_pulse)
         for t in range(1, 13):
             on = t == timing_pulse
             forces[f"T{t:02d}"] = int(on)
@@ -262,7 +336,13 @@ class CrossPointBench:
         }
 
     def timeline(self, name: str, branch: int) -> dict[int, set[str]]:
-        return {t: self.pulses_at(name, t, branch) for t in range(1, 13)}
+        """The subinstruction's pulses across the timing pulses it actually runs.
+
+        Divide is the only thing with a window narrower than T1-T12, and reading
+        outside it would print pulses the machine never reaches — DV0 hands over
+        at T3, so its T8 belongs to whatever stage came after it."""
+        first, last = PULSE_WINDOW.get(name, (1, 12))
+        return {t: self.pulses_at(name, t, branch) for t in range(first, last + 1)}
 
 
 BRANCHES = {"00": 0, "01": 1, "10": 2, "11": 3}

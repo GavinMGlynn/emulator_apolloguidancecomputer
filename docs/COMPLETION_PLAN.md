@@ -375,12 +375,17 @@ Recorded as found, per the working conventions.
       tests run the sequence: control lands on the held address with S and Z
       both taking it and STD2 following, and the lines are released after the
       one cycle so the machine runs on under its own power.
-- [ ] **The gate sweep does not cover the divide sequences.** The grey counter in
-      module A4 free-runs when no divide is in progress, so the bench holds the
-      divide conditions quiet and probes only the non-divide subinstructions
-      (FINDINGS #53). Covering DV0-DV7 needs that counter driven stage by stage.
-      *Verification:* the same 12-pulse timeline per divide stage, diffed against
-      `subinst_tables.c` like the other 29.
+- [x] **The gate sweep covers the divide sequences.** The counter is now driven
+      at its own latches — both halves of each cross-coupled pair, which is what
+      the decodes actually read — and every divide condition falls out
+      combinationally from there, so the hand-pinned `DIVIDE_QUIET` is gone. Three
+      more hardware facts had to be supplied to get there: the T12USE latch that
+      ends a divide MCT at T3 (read off the memo's own DVST and RSTSTG pulses),
+      the four-phase clock that gates CLXC and RB1F, and each stage's real pulse
+      window, since divide MCTs are offset against the timing-pulse count.
+      FINDINGS #53, #80.
+      *Verified:* **1672 rows across 36 subinstructions, 0 disagreeing**, up from
+      1392 across 29.
 - [ ] **The flight ropes reach no display from a cold start.** Luminary 099,
       Comanche 055, Artemis 072 and Zerlina 56 cycle every relay bank through
       DSPOUT and write blanks, with the PROG light on; keypresses do reach

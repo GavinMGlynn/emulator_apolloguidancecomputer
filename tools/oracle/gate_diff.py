@@ -39,6 +39,19 @@ TABLES = gx.REPO / "src" / "core" / "cpu" / "subinst_tables.c"
 IMPLIED = {"ZAP": {"RU"}, "ZIP": {"A2X", "L2GD"}}
 ZIP_RUNTIME = {"WY", "WYD", "RB", "RC", "CI", "MCRO"}
 
+#: The same problem in the divide, for the same reason. CLXC and RB1F are the
+#: two arms of a branch condition the *hardware* resolves inside the timing
+#: pulse: `CLXC = NOR(TSGU_n, BR1, PHS4_n)` and `RB1F = NOR(BR1_n, PHS4_n,
+#: TSGU_n)`, so each re-tests BR1 for itself — and on every row that carries
+#: them, TSGU has just rewritten BR1 in that same pulse.
+#:
+#: Our tables therefore issue both and let each decide, which is what
+#: `SELF_CONDITIONAL` in the generator is about; the bench, holding BR at the
+#: value the row was *entered* with, sees the arm that value selects. Neither is
+#: wrong and they cannot be compared, so they are compared out on any row that
+#: also carries TSGU — exactly as ZIP's operands are.
+LATE_BRANCH = {"CLXC", "RB1F"}
+
 #: Pulses that exist in our tables but are not cross-point outputs, so the four
 #: modules loaded here cannot show them.  Each is accounted for elsewhere.
 NOT_IN_THE_CROSS_POINT = {
@@ -108,7 +121,8 @@ def main() -> int:
             continue
         for branch in range(4):
             timeline = bench.timeline(name, branch)
-            for tp in range(1, 13):
+            first, last = gx.PULSE_WINDOW.get(name, (1, 12))
+            for tp in range(first, last + 1):
                 checked += 1
                 mine = ours_at(rows, tp, branch)
                 has_zip = "ZIP" in mine
@@ -119,6 +133,9 @@ def main() -> int:
                 if has_zip:
                     extra -= ZIP_RUNTIME
                     missing -= ZIP_RUNTIME
+                if "TSGU" in mine:
+                    extra -= LATE_BRANCH
+                    missing -= LATE_BRANCH
                 missing -= NOT_IN_THE_CROSS_POINT
                 if extra or missing:
                     disagreements += 1
