@@ -65,7 +65,7 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       brackets 26 instructions between sentinel stores.
       *Verified:* every one matches AGC4 Memo #9's sequence tables, asserted
       rather than merely frozen. FINDINGS #25-30.
-- [~] **Probes for the emergent behaviour** unit tests cannot reach.
+- [x] **Probes for the emergent behaviour** unit tests cannot reach.
       *Done:* the `counters` probe — a peripheral steals 31 whole MCTs from a
       program that never interacted with it (FINDINGS #31). The `branches`
       probe — taken/not-taken asymmetry, and both ones'-complement zeroes
@@ -76,6 +76,16 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       instruction (#40-41).
       The `counters` probe also raises a full storm: six channel-14 drive
       counters at 3.2 kHz cost a third of the machine (#44-45).
+      The `peripherals` probe closes it, and is the only one that measures the
+      machine against the *outside*: a word is uplinked from the ground while
+      the program runs, arriving one bit per 156 microseconds and stealing
+      sixteen whole MCTs to shift itself into INLINK, and the program reports
+      what it received. If the word comes out right the whole chain came out
+      right — the Inlink Control's gating, the request cells, priority control's
+      arbitration, both shift sequences, the flag detection and UPRUPT — and it
+      counts its own loop passes to prove it was running throughout rather than
+      stopped in one long instruction. The DSKY rides along in the same run,
+      with the decoded panel in the golden.
 - [x] **Golden regression.** `tools/regress.py` wired into CTest, running every
       probe and diffing its output against a checked-in golden.
       *Verified:* goldens identical on `-O0` and `-O3 -flto`, **and now on all

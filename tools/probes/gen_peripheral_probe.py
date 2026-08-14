@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""Generate the peripheral probe: the machine reports what reached it.
+
+Every other probe here measures the machine against itself. This one measures it
+against the *outside*, which is the only way to check a peripheral end to end: a
+word is uplinked from the ground while the program runs, and the program says
+what it received.
+
+That is worth doing because the uplink is not a register anyone reads. Each of
+the sixteen bits arrives separately, 156 microseconds apart, and each one steals
+a whole Memory Cycle Time to run a SHINC or SHANC that shifts it into counter
+INLINK — sixteen cycles the program never agreed to give up, with no software
+involvement at all until the flag bit falls out of the top and raises UPRUPT. If
+the word comes out right, the whole chain came out right: the Inlink Control's
+gating, the request cells, priority control's arbitration, both shift sequences,
+the flag detection and the interrupt.
+
+    main            write the display, RELINT, then count in a loop
+    at MCT 200      the frontend uplinks a key code from the ground
+    UPRUPT handler  XCH INLINK -> what arrived, into a cell the harness watches
+    main            sees the flag, writes the closing sentinel and parks
+
+The word is a real one. `--uplink V` sends the triple-redundant packing the
+flight software checks — the five-bit code, the code again, then its complement
+— so the value asserted below is what a ground station actually puts on the
+wire rather than a convenient bit pattern.
+
+The DSKY rides along in the same run: the program writes relay words to channel
+10 and lights two lamps, and the golden captures the decoded panel. That half is
+checked from outside, because nothing in the machine can read it back — channel
+10 is write-only and the relays are not addressable.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from asm import Asm  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT_BIN = ROOT / "tests/probes/peripherals.bin"
+OUT_META = ROOT / "tests/probes/peripherals.meta"
+
+CH_DSKY = 0o10
+CH_LAMPS = 0o11
+INLINK = 0o45
+
+SCRATCH = 0o110
+GOT_WORD = SCRATCH + 0   # 0110  what INLINK held when UPRUPT ran
+HANDLER = SCRATCH + 1    # 0111  non-zero once the handler has run
+LOOPS = SCRATCH + 2      # 0112  passes round the waiting loop
+DONE = SCRATCH + 3       # 0113  closing sentinel
+
+VECTOR_LAST = 0o4050     # RUPT10, the highest
+UPRUPT_VECTOR = 0o4000 + 4 * 7
+
+# Relay words touching every part of the panel, so a wrong bank or a wrong digit
+# code has somewhere to show. Bank 13 is PROG, 12 VERB, 11 NOUN, and 07 carries
+# R1's plus sign with two of its digits.
+RELAY_WORDS = [
+    0o54000 | (0o25 << 5) | 0o031,          # PROG  0 2
+    0o50000 | (0o033 << 5) | 0o017,         # VERB  3 4
+    0o44000 | (0o036 << 5) | 0o034,         # NOUN  5 6
+    0o34000 | 0o2000 | (0o023 << 5) | 0o035,  # R1 +, digits 7 8
+]
+LAMPS = 0o6  # COMP ACTY and UPLINK ACTY
+
+
+def build() -> Asm:
+    a = Asm()
+
+    one = a.label("one")
+    zero = a.label("zero")
+    words = [a.label(f"relay{i}") for i in range(len(RELAY_WORDS))]
+    lamps = a.label("lamps")
+
+    main = a.label("main_fwd")
+    a.tcf(main)
+
+    # Every vector must be woven: a stray interrupt into an unwoven word would
+    # fail parity and restart the machine rather than being handled.
+    park = a.label("park_fwd")
+    while a.here() <= VECTOR_LAST:
+        if a.here() == UPRUPT_VECTOR:
+            handler_fwd = a.label("handler_fwd")
+            a.tcf(handler_fwd)
+        else:
+            a.tcf(park)
+
+    # --- the UPRUPT handler --------------------------------------------------
+    handler_fwd.addr = a.here()
+    a.ca(zero)
+    a.xch(INLINK)      # read and clear, as the flight software does
+    a.ts(GOT_WORD)
+    a.ca(one)
+    a.ts(HANDLER)
+    a.resume()
+
+    # --- the program ---------------------------------------------------------
+    main.addr = a.here()
+
+    for w in words:
+        a.ca(w)
+        a.extend()
+        a.write(CH_DSKY)
+    a.ca(lamps)
+    a.extend()
+    a.write(CH_LAMPS)
+
+    a.relint()
+
+    # Counting the passes proves the program really was running while the word
+    # arrived a bit at a time, rather than sitting in one long instruction.
+    wait = a.here()
+    a.incr(LOOPS)
+    a.ccs(HANDLER)
+    got = a.here() + 3
+    a.tcf(got)     # positive: the handler has run
+    a.tcf(wait)    # +0: keep waiting
+    a.tcf(wait)    # negative: cannot happen
+    assert a.here() == got, f"{oct(a.here())} != {oct(got)}"
+    a.ca(one)
+    a.ts(DONE)
+
+    park.addr = a.here()
+    a.tcf(park)
+
+    one.addr = a.here()
+    a.word(1)
+    zero.addr = a.here()
+    a.word(0)
+    for label, value in zip(words, RELAY_WORDS):
+        label.addr = a.here()
+        a.word(value)
+    lamps.addr = a.here()
+    a.word(LAMPS)
+
+    return a
+
+
+def main() -> int:
+    a = build()
+    a.write_rope(str(OUT_BIN))
+
+    lines = [
+        "# Generated by tools/probes/gen_peripheral_probe.py — do not edit.",
+        "# The one probe that measures the machine against the outside world.",
+        "#",
+        "# Counters stay ENABLED: the sixteen stolen cycles are the mechanism,",
+        "# not interference to be suppressed.",
+        "flags --uplink V:200 --dump-dsky",
+        "mct 4000",
+        f"stop_at {DONE:o}",
+        "",
+        "# What the ground sent, shifted in a bit at a time and read back by the",
+        "# program itself. 035061 is the triple-redundant packing of key code",
+        "# 021 (VERB): the code in bits 1-5, again in 6-10, complemented in",
+        "# 11-15 — the redundancy the flight software checks.",
+        f"expect_mem uplink_word_arrived {GOT_WORD:o} 35061",
+        "",
+        "# The handler ran at all, so the flag bit reached the top and UPRUPT",
+        "# was taken.",
+        f"expect_mem uprupt_was_taken {HANDLER:o} 1",
+        "",
+        "# And the program kept running while it arrived. A word takes about",
+        "# 2.5 ms — some 213 MCTs — to come in, and the waiting loop is four",
+        "# words, so dozens of passes are expected and a handful would mean the",
+        "# word had arrived all at once. The exact count is left to the golden;",
+        "# the bound only has to rule out that failure.",
+        f"expect_mem_min program_ran_while_it_arrived {LOOPS:o} 50",
+        "",
+        f"dump {GOT_WORD:o}:1",
+        f"dump {INLINK:o}:1",
+    ]
+    OUT_META.write_text("\n".join(lines) + "\n")
+
+    print(f"wrote {OUT_BIN.relative_to(ROOT)} and {OUT_META.relative_to(ROOT)}: "
+          f"{a.here() - 0o4000} words")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

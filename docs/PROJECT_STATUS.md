@@ -140,7 +140,7 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | Gate-level cross-point verification | Working | `gate_level_crosspoint` in CTest; 1392 rows over 29 subinstructions, 0 disagreements, read out of `ext/agc_simulation` |
 | Multiply arithmetic | Working | `cpu_suite`: the double-precision product, the -0 high half, and both end-around-carry inhibits |
 | Long-run rope state hashes | Working | `rope_state_hashes` in CTest; 9 ropes, identical on both build types |
-| Probes for the remaining emergent behaviour | **Partial** | See gaps |
+| Peripheral verification from inside the machine | Working | `peripherals` probe: an uplinked word read back by the program, and the DSKY panel in the golden |
 
 ## Software that runs
 
@@ -191,10 +191,11 @@ Each has a reason and a cost to close, and each is a named item in
 
 ## Known gaps that are not approximations
 
-- **Probe coverage is thin.** Instruction timing, counter interference, branch
-  asymmetry, interrupt discipline and mid-instruction integrity are covered.
-  A counter storm is now probed too: six drive counters at 3.2 kHz take a third
-  of the machine (FINDINGS #45).
+- **Probe coverage.** Instruction timing, counter interference, branch
+  asymmetry, interrupt discipline, mid-instruction integrity, a counter storm
+  (six drive counters at 3.2 kHz taking a third of the machine, FINDINGS #45),
+  and — the only one that reaches outside the machine — a word uplinked from
+  the ground and read back by the program that received it.
 - **Instruction results are now differential-tested** against the oracle:
   2496/2496 cases over 21 instructions, including both ones'-complement zeroes
   and the range extremes (FINDINGS #42). What that does *not* cover is the
