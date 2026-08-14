@@ -13,10 +13,20 @@ void agc_cpu_update_adder(agc_cpu *cpu)
 {
     unsigned sum = (unsigned)cpu->x + (unsigned)cpu->y;
     unsigned carry = cpu->explicit_carry ? 1u : 0u;
-    if (!cpu->no_eac) {
+    if (!cpu->no_eac && !cpu->mp3a) {
         /* Ones' complement: a carry out of bit 16 comes back in at bit 1. This
          * is why the AGC has two zeroes and why NEACON exists — multiply needs
-         * the carry suppressed across the partial-product steps. */
+         * the carry suppressed across the partial-product steps.
+         *
+         * Two signals suppress it, and the memo names only one. The service
+         * gates form the carry into bit 1 as CINORM = NOR(NEAC, EAC, MP3A)
+         * (module A7 gate 33457): besides the NEACON..NEACOF latch, the bare
+         * MP3 decode line inhibits the carry for the whole of that
+         * subinstruction. It has to, because NEACOF fires at MP3 T6 while the
+         * multiply's final sum is not formed until the RU WA at T11 — with
+         * only the latch, that sum end-around-carries and -0 + 1 comes out as
+         * +1 instead of +0. Measured: 8 of 100 operand pairs wrong.
+         * FINDINGS #11. */
         carry |= (sum >> 16) & 1u;
     }
     cpu->u = agc_w(sum + carry);
@@ -99,6 +109,7 @@ static void gojam(agc *m)
     c->inhibit_interrupts = false;
     c->pseudo = false;
     c->no_eac = false;
+    c->mp3a = false;
     c->iip = false;
     c->gojam_pending = false;
 
@@ -330,6 +341,12 @@ static void after_timepulse(agc *m)
             c->s = agc_w(c->z & AGC_ADDR_MASK);
         }
         c->subinst = next;
+        /* MP3A is a decode line off SQ and ST, not a control pulse, so it
+         * follows what was *decoded* — a counter sequence that steals the MCT
+         * ahead of MP3 leaves SQ and the stage counter alone and so runs with
+         * the carry still inhibited. Deliberately not cleared where priority
+         * control injects an involuntary sequence. */
+        c->mp3a = strcmp(next->name, "MP3") == 0;
     }
 
     c->timepulse = c->timepulse < 12 ? (uint8_t)(c->timepulse + 1) : 1;

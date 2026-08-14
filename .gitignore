@@ -25,6 +25,7 @@
 /docs/references/agc-information-series/agcis_32_blk2_instructions.pdf
 
 # Editor / OS cruft
+.idea/
 .cache/
 compile_commands.json
 *.o

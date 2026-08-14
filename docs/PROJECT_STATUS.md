@@ -3,7 +3,7 @@
 The single source of truth for **what works and what backs it**. Updated in the
 same commit as the code it describes.
 
-Last updated: 2026-07-25.
+Last updated: 2026-08-15.
 
 ## Accuracy claim
 
@@ -31,6 +31,27 @@ The rest of what can be said today:
   the probe goldens and across nine flight and test ropes run for 200 000 MCTs
   each.
 
+**The pulse tables are verified against the gates.** Every subinstruction the
+sequence generator can decode without a Computer Test Set — 29 of them, times
+four branch-register values, times twelve timing pulses, 1392 rows — is read
+straight out of the gate netlists in `ext/agc_simulation` and diffed against
+`src/core/cpu/subinst_tables.c` by the `gate_level_crosspoint` CTest. Zero
+disagreements. Those netlists are generated from the original MIT logic flow
+diagrams, so this is the first check in the project that answers to hardware
+rather than to another model. It runs in about seven seconds and needs no
+Verilog toolchain: `tools/oracle/gate_sim.py` evaluates the netlist directly.
+
+That check earned its keep immediately by finding a defect in multiply that
+three other harnesses could not (FINDINGS #48-50). AGC4 Memo #9 fires NEACOF at
+MP3 T6; `ext/agcplusplus` moves it to T12 to keep the end-around carry inhibited
+through the multiply's final sum. The gates do neither: they clear the NEAC latch
+at T6 — NEACOF *is* TL15, the pulse that copies L15 into BR1 — and hold the carry
+off for the rest of MP3 with a **separate `MP3A` term on the carry gate that no
+document mentions** (`CINORM = NOR(NEAC, EAC, MP3A)`, module A7 gate 33457). We
+now model the term, which puts us closer to the hardware than the oracle is.
+Without it, `MP` is wrong for 8 of 100 operand pairs — every product whose high
+half lands on -0. Multiply had no unit test at all until this; it does now.
+
 **Divide results are verified against a runnable oracle**, on 13 of 13 cases.
 That check was worth building: divide was silently wrong for the project's
 entire life, losing the top bit of every quotient, and it took exactly this to
@@ -39,20 +60,20 @@ divide took precisely the right number of pulses while computing the wrong
 number — and five flight ropes booted for 2.34 emulated seconds without an
 alarm.
 
-What is **not** yet claimed: the pulse-level interleaving within an MCT is still
-unconfirmed for the two sequences where we follow AGCPlusPlus over the memo
-without gate-level backing (FINDINGS #9, #11); only MP and DV have been checked
-against the oracle for *results*; and no probe yet reads the Validation rope's
-own pass/fail verdict, so correctness elsewhere rests on unit tests rather than
-on MIT's suite.
+What is **not** yet claimed: the gate sweep does not cover the divide sequences,
+because module A4's grey counter free-runs when no divide is in progress and its
+state would leak into the reading (FINDINGS #53) — DV is still backed only by the
+memo, the model and the oracle's 13/13 results. Nor does it cover the involuntary
+counter sequences. And no probe yet reads the Validation rope's own pass/fail
+verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite.
 
 ## Subsystems
 
 | Subsystem | State | Verification |
 |---|---|---|
-| Sequence generator (SQ/ST/EXTEND decode, T1–T12 dispatch, BR conditions) | Working | `cpu_suite`; tables re-derived and diffed against the memo by `subinst_tables_are_current` in CTest |
+| Sequence generator (SQ/ST/EXTEND decode, T1–T12 dispatch, BR conditions) | Working | `cpu_suite`; tables re-derived and diffed against the memo by `subinst_tables_are_current`, and against the gate netlists by `gate_level_crosspoint` |
 | Control pulses (all 71, plus the three implicit signals) | Working | Exercised through the subinstruction tables by `cpu_suite`; individual semantics read from the memo |
-| Central registers + adder (ones' complement, end-around carry, NEACON) | Working | `cpu_suite`: end-around carry, x + (−x) = −0 |
+| Central registers + adder (ones' complement, end-around carry, NEACON + MP3A) | Working | `cpu_suite`: end-around carry, x + (−x) = −0, and multiply's two carry inhibits |
 | Erasable memory (destructive read at T5, rewrite before T10, editing registers) | Working | `memory_suite` |
 | Fixed memory (rope layout, parity, bank + superbank addressing) | Working | `memory_suite`; parity alarm confirmed by `cpu_suite` |
 | Banking (EB, FB, BB, FEXT) | Working | `memory_suite`; flight ropes switch banks continuously without alarming |
@@ -75,6 +96,8 @@ on MIT's suite.
 | Mid-instruction integrity verification | Working | `integrity` probe: MP/DV round trips give the same right answer under counter traffic |
 | Runnable oracle | Working | `tools/oracle/build_oracle.sh`; pulse-by-pulse diff against ours |
 | Instruction-set differential test | Working | `oracle_differential` in CTest; 2496/2496 cases agree over 21 instructions |
+| Gate-level cross-point verification | Working | `gate_level_crosspoint` in CTest; 1392 rows over 29 subinstructions, 0 disagreements, read out of `ext/agc_simulation` |
+| Multiply arithmetic | Working | `cpu_suite`: the double-precision product, the -0 high half, and both end-around-carry inhibits |
 | Long-run rope state hashes | Working | `rope_state_hashes` in CTest; 9 ropes, identical on both build types |
 | Probes for the remaining emergent behaviour | **Partial** | See gaps |
 
@@ -136,5 +159,13 @@ Each has a reason and a cost to close, and each is a named item in
 - **Aurora 12's RUPT LOCK is uncharacterised.** It may be correct behaviour for
   a development rope that never arms an interrupt source, or it may be the
   missing SHINC path. Characterise before fixing.
-- **FINDINGS.md rows 9, 10, 11, 13 are open**: places where AGCPlusPlus differs
-  from the memo and we have followed it without a gate-level confirmation.
+- **The gate reading is static, not a running simulation.** `gate_sim.py`
+  evaluates the netlist to steady state per timing pulse, which is exactly right
+  for a cross-point matrix (R-700 vol. III p. 5-6 calls it a logic product of
+  time pulses and instruction codes) but says nothing about propagation delay,
+  and it has no opinion about a latch whose set and reset terms are both quiet.
+  Both limits are enforced rather than assumed: the simulator reports the nets
+  that never settle and refuses to read a value from them.
+- **All four FINDINGS rows that were open against the memo are now closed** (#9,
+  #10, #11, #13). The remaining unverified corner is `mp3a` during an MCT stolen
+  by priority control — faithful to the netlist, confirmed by nothing else.

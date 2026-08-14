@@ -138,6 +138,97 @@ static void test_adding_a_value_to_its_own_negation_gives_minus_zero(void)
     TEST_ASSERT_EQUAL_HEX16(0177777, m->cpu.a);
 }
 
+/* --- multiply, and the two things that inhibit its end-around carry ---------
+ *
+ * MP leaves a double-precision product in A (high) and L (low), each with its
+ * own sign. The end-around carry has to be off across the whole of it, and the
+ * hardware turns it off twice over: the NEACON..NEACOF latch, and — because
+ * NEACOF fires at MP3 T6 while the final sum is not formed until T11 — a
+ * separate MP3A term on the carry gate (module A7 gate 33457). Drop either and
+ * multiply is wrong only for the operands whose high half lands on -0, which
+ * is why this went unnoticed. FINDINGS #11.
+ */
+
+/* Read the 28-bit product back out of A and L. The two halves carry 14
+ * magnitude bits each and share the sign in bit 16 of A, so a negative product
+ * is the ones' complement of the whole thing, not of each half separately. */
+static long mp_product(void)
+{
+    long high = m->cpu.a & 037777u;
+    long low = m->cpu.l & 037777u;
+    if (m->cpu.a & 0100000u) {
+        high = ~(unsigned)m->cpu.a & 037777u;
+        low = ~(unsigned)m->cpu.l & 037777u;
+        return -(high * 16384L + low);
+    }
+    return high * 16384L + low;
+}
+
+static void test_multiply_leaves_the_double_precision_product_in_a_and_l(void)
+{
+    const unsigned code[] = { I_CA(K0), I_EXTEND, I_MP(K1) };
+    load(code, 3);
+    konst(K0, 001234);  /* 668 */
+    konst(K1, 000567);  /* 375 */
+    run_to_park();
+    TEST_ASSERT_EQUAL_INT32(668L * 375L, mp_product());
+    TEST_ASSERT_EQUAL_HEX16(000017, m->cpu.a);
+    TEST_ASSERT_EQUAL_HEX16(011204, m->cpu.l);
+}
+
+static void test_multiplying_the_largest_positive_operand_by_one_keeps_the_carry_out(void)
+{
+    /* 037777 * 1. The partial-product sum leaves the high half at -0, and the
+     * final RU WA at MP3 T11 adds to it. With the end-around carry still live
+     * that -0 becomes +1 and the product comes out 040000 too big; with the
+     * MP3A inhibit it stays +0. */
+    const unsigned code[] = { I_CA(K0), I_EXTEND, I_MP(K1) };
+    load(code, 3);
+    konst(K0, 037777);
+    konst(K1, 000001);
+    run_to_park();
+    TEST_ASSERT_EQUAL_INT32(16383L, mp_product());
+    TEST_ASSERT_EQUAL_HEX16(000000, m->cpu.a);
+}
+
+static void test_multiplying_by_a_negative_operand_gives_a_negative_product(void)
+{
+    const unsigned code[] = { I_CA(K0), I_EXTEND, I_MP(K1) };
+    load(code, 3);
+    konst(K0, 000002);
+    konst(K1, 077775);  /* -2 */
+    run_to_park();
+    TEST_ASSERT_EQUAL_INT32(-4L, mp_product());
+    /* A product too small to reach the high half still signs it: -0. */
+    TEST_ASSERT_EQUAL_HEX16(0177777, m->cpu.a);
+}
+
+static void test_neacof_fires_at_mp3_t6_and_mp3a_holds_the_carry_off_to_t12(void)
+{
+    /* The two inhibits are separately observable: NEACOF releases the latch at
+     * MP3 T6, so no_eac is already clear while the multiply is still running,
+     * and the MP3A decode line is what carries the inhibit the rest of the way.
+     * Read straight off the gates by tools/oracle/gate_crosspoint.py. */
+    const unsigned code[] = { I_CA(K0), I_EXTEND, I_MP(K1) };
+    load(code, 3);
+    konst(K0, 037777);
+    konst(K1, 000001);
+    agc_cpu_start(m);
+
+    bool saw_mp3_with_latch_released = false;
+    for (unsigned i = 0; i < PARK_MCTS * 12u; ++i) {
+        agc_tick(m);
+        if (m->cpu.mp3a && !m->cpu.no_eac) {
+            saw_mp3_with_latch_released = true;
+        }
+    }
+    /* If NEACOF sat at T12 the way the reference model puts it, the latch
+     * would still be set for every pulse MP3A is up and this would never
+     * trigger — the two inhibits would be indistinguishable. */
+    TEST_ASSERT_TRUE(saw_mp3_with_latch_released);
+    TEST_ASSERT_FALSE(m->cpu.mp3a);  /* and it is down again once MP is over */
+}
+
 static void test_mask_ands_the_operand_into_the_accumulator(void)
 {
     const unsigned code[] = { I_CA(K0), I_MASK(K1) };
@@ -302,6 +393,10 @@ int main(void)
     RUN_TEST(test_ad_adds_the_operand_to_the_accumulator);
     RUN_TEST(test_adding_a_negative_operand_uses_the_end_around_carry);
     RUN_TEST(test_adding_a_value_to_its_own_negation_gives_minus_zero);
+    RUN_TEST(test_multiply_leaves_the_double_precision_product_in_a_and_l);
+    RUN_TEST(test_multiplying_the_largest_positive_operand_by_one_keeps_the_carry_out);
+    RUN_TEST(test_multiplying_by_a_negative_operand_gives_a_negative_product);
+    RUN_TEST(test_neacof_fires_at_mp3_t6_and_mp3a_holds_the_carry_off_to_t12);
     RUN_TEST(test_mask_ands_the_operand_into_the_accumulator);
     RUN_TEST(test_ads_adds_the_accumulator_into_erasable_memory);
     RUN_TEST(test_incr_adds_one_to_an_erasable_word);

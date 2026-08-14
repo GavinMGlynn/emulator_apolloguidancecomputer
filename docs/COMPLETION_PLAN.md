@@ -97,11 +97,18 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       against our `--trace`.
       *Verified:* it found the divide defect in FINDINGS #40, and settled two of
       the four open memo divergences (#10, #13).
-- [ ] **Instrument the gate-level oracle** (`ext/agc_simulation`) to settle the
-      two rows still open in `tools/oracle/FINDINGS.md` (#9 DAS1 T10/T11,
-      #11 MP3 T6/T12).
-      *Verification:* a captured pulse timeline per question, recorded in
-      FINDINGS with the instrumentation reverted afterwards.
+- [x] **Read the gate-level oracle** (`ext/agc_simulation`) to settle the two
+      rows still open in `tools/oracle/FINDINGS.md` (#9 DAS1 T10/T11, #11 MP3
+      T6/T12). Both closed, and #11 turned out to be a real defect: the memo's
+      NEACOF placement is right and the end-around carry is held off for the
+      rest of MP3 by a second term, `MP3A`, that no document mentions.
+      `tools/oracle/gate_sim.py` evaluates the netlists directly (no Verilog
+      toolchain); `gate_crosspoint.py` prints a timeline; `gate_diff.py` sweeps
+      the whole table.
+      *Verified:* the captured timelines are in FINDINGS #47-50, and
+      `gate_level_crosspoint` in CTest checks all 1392 rows on every build —
+      29 subinstructions x 4 branch values x 12 timing pulses, 0 disagreements.
+      Detail in `PROJECT_STATUS.md`.
 
 ## Phase 3 — Peripherals
 
@@ -184,3 +191,20 @@ Recorded as found, per the working conventions.
       a bug in us.
 - [ ] `tools/build_ropes.sh` builds yaYUL by globbing its sources; a Virtual AGC
       bump that adds a `main`-bearing file would break it. Pin or filter.
+- [ ] **TCSAJ3 is not implemented.** The memo lists it and the gates decode it;
+      it is the Computer Test Set's "transfer control to specified address jam",
+      so nothing in flight reaches it and `ext/agcplusplus` never modelled it
+      either. Named in `gate_diff.py` as `NOT_MODELLED` so its absence stays a
+      decision. Close it if the CTS interface is ever modelled.
+- [ ] **The gate sweep does not cover the divide sequences.** The grey counter in
+      module A4 free-runs when no divide is in progress, so the bench holds the
+      divide conditions quiet and probes only the non-divide subinstructions
+      (FINDINGS #53). Covering DV0-DV7 needs that counter driven stage by stage.
+      *Verification:* the same 12-pulse timeline per divide stage, diffed against
+      `subinst_tables.c` like the other 29.
+- [ ] **`mp3a` during a stolen MCT is unverified.** MP3A is a decode line, so a
+      counter sequence servicing a request between MP1 and MP3 runs with the
+      end-around carry still inhibited (FINDINGS #49). That falls out of the
+      netlist and matches it, but nothing else confirms it.
+      *Verification:* a probe that forces a counter request into that window and
+      reads the counter, or the gate-level model run for those MCTs.

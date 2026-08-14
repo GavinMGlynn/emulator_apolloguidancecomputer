@@ -54,6 +54,7 @@ typedef struct agc_cpu {
     /* Adder control. */
     bool explicit_carry; /* set by CI, cleared by any WY/WYD/WY12 */
     bool no_eac;         /* NEACON..NEACOF inhibits the end-around carry */
+    bool mp3a;           /* the MP3 decode line, a second, independent inhibit */
 
     /* Address of the erasable word read this cycle, held so the rewrite before
      * T10 goes back to the right place even if S has since changed. Zero means

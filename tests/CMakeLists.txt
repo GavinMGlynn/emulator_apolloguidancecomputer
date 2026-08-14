@@ -35,6 +35,23 @@ if(Python3_Interpreter_FOUND)
                      --exe $<TARGET_FILE:agc_headless>)
 endif()
 
+# The third opinion on the pulse tables, and the only one that is hardware
+# rather than a model: every subinstruction, every branch condition and all
+# twelve timing pulses, read out of the gate netlists in ext/agc_simulation
+# (generated from the original MIT logic flow diagrams) and diffed against
+# src/core/cpu/subinst_tables.c. The memo is the primary source and
+# ext/agcplusplus is the corrected reading of it; when those two disagree this
+# is what decides, and it is what turned up the MP3A term on the carry gate
+# (tools/oracle/FINDINGS.md #11).
+#
+# Skips cleanly when ext/agc_simulation is absent, so CI stays green with only
+# ext/unity initialised.
+if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/ext/agc_simulation/modules/crosspoint_ii.v")
+    add_test(NAME gate_level_crosspoint
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/oracle/gate_diff.py)
+    set_tests_properties(gate_level_crosspoint PROPERTIES TIMEOUT 600)
+endif()
+
 # Differential test against the runnable oracle: same rope, same number of
 # timing pulses, compare registers and memory. This is what catches an
 # instruction that computes the wrong answer at exactly the right speed — the

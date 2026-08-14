@@ -28,9 +28,9 @@ appear below; an unexplained line in that output is an open question.
 | 6 | MP0 T9 | `RB WY` / `RB WY CI` | adds `RC` on the negative branches | AGCPlusPlus. |
 | 7 | NDX1 T10 | `RU WB` (first printing) / `RU WB EXT` (second) | `RU WB EXT` for the extracode form only | The memo prints NDX1 twice, once under NDX0 and once under NDXX0, with different T10 rows. The second is the extracode INDEX, which must set the EXTEND flip-flop. |
 | 8 | ADS0 T7/T9 | rows annotated "[no function; similar to DAS1]" | kept | These rows genuinely do nothing useful in ADS; the hardware asserts them because ADS0 and DAS1 share cross-point wiring. We keep them so the tables stay diffable against the memo — and because "asserts a pulse with no effect" is still a fact about the machine. |
-| 9 | DAS1 T10/T11 | `10. x0 WL` / `10. x1 RU WA` | model splits differently across T10/T11 | AGCPlusPlus. Not yet independently confirmed against the gate level. **Open.** |
+| 9 | DAS1 T10/T11 | `10. x0 WL` / `10. x1 RU WA` | `10. x0 WL` / **`11. x1 RU WA`** | **Resolved at the gate level — see #47.** The T11 term is `DAS1 . BR2` in cross-point drawing 2005263; the memo's second "10." is a typo for "11.". The model was right. |
 | 10 | DV3/DV6/DV7 T5, T8, T11 | `DVST` present | `DVST` absent on those rows | AGCPlusPlus. **Resolved.** With one DVST per sequence the grey counter runs 0→1→3→7→6→4, exactly the documented stage order; four per sequence would over-advance it. The memo's extra DVSTs must serve its *other* documented function — permitting the T3 restage — which is not counter-driven. Divide now matches the oracle on 13/13 cases. |
-| 11 | MP3 T6 / T12 | `NEACOF` at T6, no T12 row | model differs | AGCPlusPlus. **Open.** |
+| 11 | MP3 T6 / T12 | `NEACOF` at T6, no T12 row | **memo right; we now follow it** | **Resolved at the gate level — see #48-50.** The gates clear the NEAC latch at T6 (it *is* TL15) and hold the carry off for the rest of MP3 with a separate MP3A term on the carry gate, which no document mentions. AGCPlusPlus models the same effect by deferring NEACOF to T12; we model the term. One place we are more faithful than the oracle. |
 | 12 | DV0 T1 | no `TMZ` | `TMZ` present | AGCPlusPlus. |
 | 13 | DV4 T3 | `RU WB STAGE` | absent from the model | **Resolved.** It is the same pulse the memo already prints as the last row of DV6: the transition into DV4, listed at both ends. DV4 itself begins at T4, and by its own T8 `RSTSTG` has cleared the divide flag so the MCT ends at T12 — a DV4 T3 row could never execute. Divide matches the oracle on 13/13 cases. |
 
@@ -243,3 +243,81 @@ duration cannot tell you it has been restarted.
 The loop is now short enough to finish well inside the alarm window, rather than
 suppressing the alarm — the machine is behaving correctly in both cases and only
 one of them is a useful experiment.
+
+## The gate level, and the third opinion on the pulse tables
+
+Rows 9 and 11 above were the last two places where we followed AGCPlusPlus over
+the memo with nothing but the model's word for it. Settling them needed the
+gates, and the gates are not runnable here — `ext/agc_simulation` is Icarus
+Verilog and the whole machine, which is far more than a cross-point question
+needs. So the netlists are read directly instead, by
+`tools/oracle/gate_sim.py`: three primitives (`nor_1..4`, `od_buf`, `pullup`)
+transcribed from their own source files, the 74xx packs parsed for pin order,
+and a synchronous unit-delay evaluation of the mesh. R-700 vol. III (Hall,
+p. 5-6) is the licence for reading it that way — the sequence generator is "a
+wired memory ... the output ... formed by a cross-point generator as a logic
+product of the appropriate time pulses and instruction codes."
+
+`tools/oracle/gate_crosspoint.py` holds modules A3/A4/A5/A6 at one
+subinstruction and walks T1-T12, printing the same table the memo prints.
+`tools/oracle/gate_diff.py` runs the sweep against our tables in CTest.
+
+| # | Question | Answer | Source |
+|---|---|---|---|
+| 46 | Where does the machine take its subinstruction encoding from? | SQ register bits 16,14,13,12,11 plus SQR10 and the EXTEND flip-flop, decoded to one-hot SQ0..SQ7 lines inside A3. | Derived by sweeping those bits in the netlist and reading which decode line comes up; the result reproduces the memo's own "Op Code EXT SQ16,14-13,12-11,10" table exactly, which is the check that the driving is right rather than merely plausible. |
+| 47 | **#9 closed: DAS1's second `RU WA` is at T11, not T10.** | The memo prints `10. x0 WL` and `10. x1 RU WA`; the gates put `WL` at T10 when BR2=0 and `RU WA` at **T11** when BR2=1. Our tables were already right. | The T11 term is `DAS1 . BR2` (A6 U6044 y1), reaching WA through U6042/U6041 and RU through U6036. Captured timeline below. The memo's second "10." is a typo for "11.", which the ADS0 sequence — sharing the same cross-point wiring, and printed at `11. xx` — already hinted at. |
+| 48 | **#11 closed, and not the way either source said.** | NEACOF fires at **MP3 T6**, exactly where the memo prints it. It is not a cross-point output at all: it is `TL15`, the same pulse that copies L15 into BR1, clearing the NEAC latch as its second effect. | A4 gate 36449 gives `TL15 = MP3 . T06` (drawing 2005262); A6 gates 40426/40427 are the NEAC latch, set by MP0T10 and reset by TL15 or GOJAM (drawing 2005263, pin 458). |
+| 49 | Then how does multiply survive, when its final sum is not formed until MP3 T11? | **A second, independent inhibit that no document mentions.** The service gates form the carry into bit 1 as `CINORM = NOR(NEAC, EAC, MP3A)`, and `MP3A` is the bare MP3 decode line — so the end-around carry is off for the whole of MP3 regardless of the latch. | `ext/agc_simulation` module A7 gate 33457 (three inputs). **The original drawing 2005252 has only two**: NEAC and EAC. The third input exists in Mike Stewart's hardware replica and not in the drawing revision mirrored at klabs, which is the "hardware fix" AGCPlusPlus's own comment refers to. |
+| 50 | Does it matter? | Yes. With NEACOF at T6 and no MP3A term, `MP` is wrong for **8 of 100** operand pairs — every one whose high half lands on -0, which the live carry turns into +1. `037777 x 1` comes out 040000 too big. | Measured on our core with the row moved, against the arithmetic product. AGCPlusPlus reached the same place from the other end: commit 4cbe538, "Some small tweaks and fixes for MP / Still not passing that first set of tests" — MIT's own Validation rope. |
+
+We now model it the way the gates do rather than the way the reference model
+does: NEACOF stays at MP3 T6 where the memo and the cross-point drawing put it,
+and `mp3a` inhibits the carry in `agc_cpu_update_adder`. That is one place we
+are more faithful than the oracle, and it is a *deliberate* divergence, encoded
+as `GATE_CORRECTIONS` in `tools/gen_subinst_tables.py` so the generator cannot
+quietly undo it on the next submodule bump.
+
+Two consequences worth stating, because neither was obvious:
+
+- **MP3A follows the decode, not the injected sequence.** A counter request
+  serviced in the MCT between the last MP1 and MP3 leaves SQ and the stage
+  counter alone, so MP3A is still up and that counter's increment runs with the
+  end-around carry inhibited. Emergent, faithful to the netlist, and not
+  verified against anything else — flagged here rather than smoothed over.
+- **Multiply had no unit test at all.** Three timing probes, a 2496-case
+  differential sweep and nine booting ropes did not notice, because the
+  reference model shared the same behaviour and the differential test can only
+  find places where we disagree with it. `cpu_suite` now asserts the product
+  arithmetically.
+
+### The captured timelines
+
+`tools/oracle/gate_crosspoint.py DAS1` — the T10/T11 question, settled:
+
+```
+  BR = 00                      BR = 01
+    9.  RC  TMZ                  9.  RC  TMZ
+   10.  WL                      11.  RU  WA
+```
+
+`tools/oracle/gate_crosspoint.py MP3` — the T6/T12 question, settled:
+
+```
+    5.  CI  RZ  WY12
+    6.  RU  TL15/NEACOF  WZ        <- and nothing at T12
+    7.  A2X  RB  WY                   (BR1 = 1)
+   11.  RU  WA                        (BR1 = 1)
+```
+
+### What the sweep says about everything else
+
+1392 rows — 29 subinstructions x 4 branch values x 12 timing pulses — agree with
+the gate netlist with no exceptions left over. The two that were open when the
+sweep was first run were exactly #11 above and RESUME's `CLRIIP`, which is not a
+cross-point output at all (it lives in A15; FINDINGS #16).
+
+| # | Harness lesson |
+|---|---|
+| 51 | **A subset of a netlist is not the netlist.** Open-drain nets are wired-ANDs whose pull-up sits on whichever module had room — `WA_n` is pulled up on A6, `Z16_n` over on A11. Loading four modules picks up drivers whose pull-up is out of scope, and such a net latches low the first time anything pulls it, which is how DAS1 first appeared to assert `Z15`, `Z16` and `L16` that no source prints. The simulator now supplies the missing pull-up explicitly. |
+| 52 | **A zero-timing evaluation has no opinion about a latch.** NEAC, PIFL and GNHNC are SR latches; with neither term asserted they hold state in hardware and ring in the model. Rather than hide it, `settle()` returns the ringing set and `read()` refuses to report a value from it — so a latch can never be mistaken for a control pulse. Both memo pulses that *are* latches are reported by their set term instead. |
+| 53 | **The idle divide counter leaks.** The grey counter in A4 free-runs with no divide in progress, and its arbitrary state reached the cross-point matrix as a phantom `WB` on DAS1 T3. The bench holds the divide conditions quiet for the non-divide sequences it probes; probing the DV sequences needs that counter driven stage by stage, which it does not attempt. |

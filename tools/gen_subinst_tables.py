@@ -44,6 +44,50 @@ BARE_ASSIGNMENTS = {
     ("iip", "false"): "clriip",
 }
 
+# Places where the *gates* overrule the reference model, applied after parsing.
+# ext/agcplusplus is the corrected reading of the memo, but it is still a model,
+# and where it and the memo disagree the netlists in ext/agc_simulation and the
+# original MIT drawings decide. Each entry names the drawing that settles it and
+# carries a FINDINGS row; `tools/oracle/gate_crosspoint.py` prints the timeline
+# it is derived from.
+#
+# Format: subinstruction -> list of (timing pulse, pulses to drop, pulses to add).
+GATE_CORRECTIONS: dict[str, list[tuple[int, set[str], list[str]]]] = {
+    # FINDINGS #11. AGCPlusPlus moves NEACOF from MP3 T6 to T12 to keep the
+    # end-around carry inhibited through the multiply's final sum. The hardware
+    # does not: cross-point drawing 2005263 clears the NEAC latch at T6 (via
+    # TL15, exactly where the memo prints NEACOF), and service-gates drawing
+    # 2005252 gate 33457 covers the rest of MP3 with a separate MP3A term on
+    # the carry. We put the pulse back where both the memo and the cross-point
+    # gates have it and model MP3A in the adder (src/core/cpu/cpu.c).
+    "mp3": [
+        (6, set(), ["neacof"]),
+        (12, {"neacof"}, []),
+    ],
+}
+
+
+def apply_gate_corrections(parsed: dict) -> None:
+    for name, edits in GATE_CORRECTIONS.items():
+        rows = parsed.get(name)
+        if rows is None:
+            raise SystemExit(f"gate correction names {name!r}, which is not a subinstruction")
+        for tp, drop, add in edits:
+            variants = rows.get(tp, [])
+            for i, (mask, value, pulses) in enumerate(list(variants)):
+                kept = [p for p in pulses if p not in drop]
+                if kept == pulses and not add:
+                    raise SystemExit(
+                        f"gate correction for {name} T{tp} changes nothing; "
+                        f"the reference model may already agree — re-check FINDINGS"
+                    )
+                variants[i] = (mask, value, kept + [p for p in add if p not in kept])
+            if not variants and add:
+                rows[tp] = [(0b00, 0b00, list(add))]
+            rows[tp] = [r for r in rows.get(tp, []) if r[2]]
+            if not rows[tp]:
+                del rows[tp]
+
 
 def pulse_enum(name: str) -> str:
     return "AGC_P_" + IMPLICIT.get(name, name.upper())
@@ -360,6 +404,7 @@ def main() -> int:
         return 1
 
     parsed = parse_subinstructions()
+    apply_gate_corrections(parsed)
     dispatch = parse_dispatch()
     text = emit(parsed, dispatch)
 

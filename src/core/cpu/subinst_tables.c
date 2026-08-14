@@ -366,13 +366,12 @@ static const agc_pulse_row mp3_rows[] = {
     {  3, 0x0, 0x0, { AGC_P_ZAP } },  /* T3 xx */
     {  4, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG } },  /* T4 xx */
     {  5, 0x0, 0x0, { AGC_P_RZ, AGC_P_WY12, AGC_P_CI } },  /* T5 xx */
-    {  6, 0x0, 0x0, { AGC_P_RU, AGC_P_WZ, AGC_P_TL15 } },  /* T6 xx */
+    {  6, 0x0, 0x0, { AGC_P_RU, AGC_P_WZ, AGC_P_TL15, AGC_P_NEACOF } },  /* T6 xx */
     {  7, 0x2, 0x2, { AGC_P_RB, AGC_P_WY, AGC_P_A2X } },  /* T7 1x */
     {  8, 0x0, 0x0, { AGC_P_RAD, AGC_P_WB, AGC_P_WS } },  /* T8 xx */
     {  9, 0x0, 0x0, { AGC_P_RA } },  /* T9 xx */
     { 10, 0x0, 0x0, { AGC_P_RL } },  /* T10 xx */
     { 11, 0x2, 0x2, { AGC_P_RU, AGC_P_WA } },  /* T11 1x */
-    { 12, 0x0, 0x0, { AGC_P_NEACOF } },  /* T12 xx */
 };
 
 static const agc_pulse_row msk0_rows[] = {
