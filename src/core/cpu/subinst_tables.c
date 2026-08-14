@@ -534,6 +534,22 @@ static const agc_pulse_row rxor0_rows[] = {
     { 11, 0x0, 0x0, { AGC_P_RC, AGC_P_RG, AGC_P_WA } },  /* T11 xx */
 };
 
+static const agc_pulse_row shanc_rows[] = {
+    {  1, 0x0, 0x0, { AGC_P_RSCT, AGC_P_WS } },  /* T1 xx */
+    {  2, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG } },  /* T2 xx */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_WYD, AGC_P_TSGN, AGC_P_CI } },  /* T5 xx */
+    {  7, 0x0, 0x0, { AGC_P_RUS, AGC_P_WSC, AGC_P_WG, AGC_P_WOVR } },  /* T7 xx */
+    {  8, 0x0, 0x0, { AGC_P_RB, AGC_P_WS } },  /* T8 xx */
+};
+
+static const agc_pulse_row shinc_rows[] = {
+    {  1, 0x0, 0x0, { AGC_P_RSCT, AGC_P_WS } },  /* T1 xx */
+    {  2, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG } },  /* T2 xx */
+    {  5, 0x0, 0x0, { AGC_P_RG, AGC_P_WYD, AGC_P_TSGN } },  /* T5 xx */
+    {  7, 0x0, 0x0, { AGC_P_RU, AGC_P_WSC, AGC_P_WG, AGC_P_WOVR } },  /* T7 xx */
+    {  8, 0x0, 0x0, { AGC_P_RB, AGC_P_WS } },  /* T8 xx */
+};
+
 static const agc_pulse_row std2_rows[] = {
     {  1, 0x0, 0x0, { AGC_P_RZ, AGC_P_WY12, AGC_P_CI } },  /* T1 xx */
     {  2, 0x0, 0x0, { AGC_P_RSC, AGC_P_WG, AGC_P_NISQ } },  /* T2 xx */
@@ -689,3 +705,5 @@ const agc_subinst agc_subinst_mcdu = { "MCDU", 0, false, 0, 0, mcdu_rows, (uint8
 const agc_subinst agc_subinst_minc = { "MINC", 0, false, 0, 0, minc_rows, (uint8_t)(sizeof minc_rows / sizeof *minc_rows) };
 const agc_subinst agc_subinst_pcdu = { "PCDU", 0, false, 0, 0, pcdu_rows, (uint8_t)(sizeof pcdu_rows / sizeof *pcdu_rows) };
 const agc_subinst agc_subinst_pinc = { "PINC", 0, false, 0, 0, pinc_rows, (uint8_t)(sizeof pinc_rows / sizeof *pinc_rows) };
+const agc_subinst agc_subinst_shanc = { "SHANC", 0, false, 0, 0, shanc_rows, (uint8_t)(sizeof shanc_rows / sizeof *shanc_rows) };
+const agc_subinst agc_subinst_shinc = { "SHINC", 0, false, 0, 0, shinc_rows, (uint8_t)(sizeof shinc_rows / sizeof *shinc_rows) };

@@ -74,11 +74,12 @@ void agc_memory_write_erasable(agc_memory *m, agc_word addr, agc_word data)
         return; /* writes to the zero register are swallowed */
     }
 
-    /* Store 15 bits: bit 16 (the duplicated sign) collapses back into bit 15. */
-    unsigned v = data & (unsigned)~AGC_BIT(15);
-    v |= (v & AGC_BIT(16)) >> 1;
-    v &= (unsigned)~AGC_BIT(16);
-    m->erasable[addr] = agc_w(v);
+    /* An erasable word is fifteen bits and a parity bit; there is no bit 16 in
+     * the core, so bit 16 is simply dropped here. Deciding *which* of bits 15
+     * and 16 survives when they disagree is not memory's business — it is the
+     * G-write gate's, and it depends on what the machine is doing (see
+     * agc_cpu_write_g in cpu.c). */
+    m->erasable[addr] = agc_w(data & AGC_BITS(1, 15));
 }
 
 agc_word agc_memory_read_fixed_raw(const agc_memory *m, unsigned addr)

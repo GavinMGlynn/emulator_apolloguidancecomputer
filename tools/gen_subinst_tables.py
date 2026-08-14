@@ -67,6 +67,38 @@ GATE_CORRECTIONS: dict[str, list[tuple[int, set[str], list[str]]]] = {
 }
 
 
+# Sequences the reference model never implemented, taken from the memo itself.
+# ext/agcplusplus has no SHINC or SHANC — the serial counters are the one part
+# of priority control it left out — so for these the memo is not merely the
+# primary source, it is the only one. They are *generated from the parsed memo*
+# rather than hand-written here, so the committed tables stay diffable against
+# `docs/references/AgcPulsesAndSequences.txt` by construction; a transcription
+# error would have to be an error in reading the memo file, which the same
+# parser does for every other sequence.
+FROM_THE_MEMO = ("SHINC", "SHANC")
+
+
+def sequences_from_memo(parsed: dict, memo: dict) -> None:
+    for name in FROM_THE_MEMO:
+        key = name.lower()
+        if key in parsed:
+            raise SystemExit(
+                f"{name} is now in the reference model; drop it from FROM_THE_MEMO "
+                f"so the model stays the source and the memo stays the check"
+            )
+        if name not in memo:
+            raise SystemExit(f"{name} has no table in {MEMO.name}")
+        rows: dict[int, list[tuple[int, int, list[str]]]] = {}
+        for tp, variants in sorted(memo[name].items()):
+            if len(variants) != 1:
+                raise SystemExit(
+                    f"{name} T{tp} is branch-conditional in the memo; teach this "
+                    f"path the condition rather than flattening it"
+                )
+            rows[tp] = [(0b00, 0b00, [p.lower() for p in variants[0]])]
+        parsed[key] = rows
+
+
 def apply_gate_corrections(parsed: dict) -> None:
     for name, edits in GATE_CORRECTIONS.items():
         rows = parsed.get(name)
@@ -404,11 +436,13 @@ def main() -> int:
         return 1
 
     parsed = parse_subinstructions()
+    memo = parse_memo()
+    sequences_from_memo(parsed, memo)
     apply_gate_corrections(parsed)
     dispatch = parse_dispatch()
     text = emit(parsed, dispatch)
 
-    for note in report_divergences(parsed, parse_memo()):
+    for note in report_divergences(parsed, memo):
         print(f"memo divergence: {note}", file=sys.stderr)
 
     if args.check:

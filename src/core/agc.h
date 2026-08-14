@@ -16,6 +16,7 @@
 #include "dsky/dsky.h"
 #include "io/channels.h"
 #include "io/counters.h"
+#include "io/uplink.h"
 #include "memory/memory.h"
 #include "timing/scaler.h"
 
@@ -33,6 +34,7 @@ typedef struct agc {
     agc_channels channels;
     agc_scaler scaler;
     agc_dsky dsky;
+    agc_uplink uplink;
 
     /* Timing pulses since reset. Divided by 12 this is MCTs; the scaler is
      * clocked from it every AGC_SCALER_DIVISOR pulses. */

@@ -31,6 +31,8 @@ static void usage(const char *argv0)
             "  --press KEY:MCT      press a DSKY key at the given MCT. KEY is a\n"
             "                       digit, V, N, E (enter), R (reset), C (clear),\n"
             "                       K (key release), + or -. Repeatable.\n"
+            "  --uplink KEY:MCT     uplink the same key from the ground instead,\n"
+            "                       as a triple-redundant word. Repeatable.\n"
             "  --sentinel A         watch octal erasable cell A; report the MCT at\n"
             "                       which it first becomes non-zero. Repeatable.\n"
             "                       The run stops once every sentinel has fired.\n"
@@ -53,6 +55,7 @@ struct press {
     enum agc_dsky_key key;
     unsigned long long mct;
     bool done;
+    bool uplinked; /* from the ground rather than from the keyboard */
 };
 
 /* One character per key, chosen to read like the panel: the digits, then V, N,
@@ -178,6 +181,14 @@ int main(int argc, char **argv)
                 return 2;
             }
             press_count++;
+        } else if (strcmp(a, "--uplink") == 0) {
+            if (press_count == MAX_PRESSES || !parse_press(argv[++i], &presses[press_count])) {
+                fprintf(stderr, "--uplink wants KEY:MCT, e.g. V:1200\n");
+                free(m);
+                return 2;
+            }
+            presses[press_count].uplinked = true;
+            press_count++;
         } else if (strcmp(a, "--sentinel") == 0) {
             unsigned addr = 0;
             if (sentinel_count == MAX_SENTINELS) {
@@ -277,7 +288,11 @@ int main(int argc, char **argv)
             if (!presses[k].done
                 && m->timepulses / AGC_TIMEPULSES_PER_MCT >= presses[k].mct) {
                 presses[k].done = true;
-                agc_dsky_press(m, presses[k].key, 0);
+                if (presses[k].uplinked) {
+                    agc_uplink_send(m, agc_uplink_keycode((unsigned)presses[k].key));
+                } else {
+                    agc_dsky_press(m, presses[k].key, 0);
+                }
             }
         }
         agc_tick(m);
@@ -344,6 +359,10 @@ int main(int argc, char **argv)
         printf("DSKY relay-writes %llu\n",
                (unsigned long long)m->dsky.relay_writes);
         printf("DSKY lamps %06o status %06o\n", m->dsky.lamps, m->dsky.status);
+        printf("UPLINK accepted %llu refused %llu words %llu\n",
+               (unsigned long long)m->uplink.bits_accepted,
+               (unsigned long long)m->uplink.bits_refused,
+               (unsigned long long)m->uplink.words_sent);
         for (unsigned b = 0; b < AGC_DSKY_BANKS; ++b) {
             printf("DSKY relay %02o %04o\n", b, m->dsky.relay[b]);
         }

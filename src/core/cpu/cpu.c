@@ -167,15 +167,41 @@ static const agc_subinst *counter_sequence(const agc_cpu *c)
         case AGC_CK_PCDU_MCDU:
             return dir == AGC_COUNT_UP ? &agc_subinst_pcdu : &agc_subinst_mcdu;
         case AGC_CK_SHINC:
+            return &agc_subinst_shinc;
         case AGC_CK_SHINC_SHANC:
-            /* PROVISIONAL: the serial-input sequences need the uplink and radar
-             * shift registers, which do not exist yet. Leaving the request
-             * pending would deadlock priority control, so drop it and let the
-             * program see no data. See docs/COMPLETION_PLAN.md. */
-            return NULL;
+            /* The request cell carries which bit arrived: a shift-in of one is
+             * SHANC, of zero is SHINC. Priority control has no third state, so
+             * the peripheral encodes the bit in the direction it requests. */
+            return dir == AGC_COUNT_UP ? &agc_subinst_shanc : &agc_subinst_shinc;
         }
     }
     return NULL;
+}
+
+/* What actually reaches the core on a rewrite.
+ *
+ * An erasable word is fourteen magnitude bits and a sign, so when the adder
+ * hands back an overflowed value — bits 15 and 16 disagreeing — the sign that
+ * survives is bit 16, the corrected one. That is what makes a counter *wrap*:
+ * TIME1 at 037777 incremented is 040000, positive overflow, whose corrected
+ * sign is +, so +0 lands in core and WOVR carries the 1 into TIME2. Without it
+ * the AGC's 28-bit clock would not be a clock.
+ *
+ * Except during a shift-in. The serial counters move their outgoing bit through
+ * bit 16 while bit 15 still carries data, so correcting the sign there would
+ * overwrite a real bit with the bit on its way out — and every uplink word
+ * would lose one. The hardware makes the same distinction in the same place:
+ * module A7 gate U7006 gates the normal G write with SHIFT (and with NEAC,
+ * multiply's equivalent), so a shift-in writes G by a different path.
+ */
+static agc_word correct_sign_for_core(const agc_cpu *c)
+{
+    if (c->shinc) {
+        return c->g;
+    }
+    unsigned v = c->g & (unsigned)~AGC_BIT(15);
+    v |= (v & AGC_BIT(16)) >> 1;
+    return agc_w(v);
 }
 
 /* Everything the memory and priority-control logic do between timing pulses. */
@@ -193,9 +219,14 @@ static void before_timepulse(agc *m)
             const agc_subinst *seq = counter_sequence(c);
             if (seq) {
                 c->subinst = seq;
+                /* SHIFT, in the gates: asserted for the whole of either
+                 * shift-in sequence, and read by WYD. */
+                c->shinc = seq == &agc_subinst_shinc || seq == &agc_subinst_shanc;
             } else {
                 c->inkl = false;
             }
+        } else {
+            c->shinc = false;
         }
         if (c->st != 2) {
             c->fetch_next_instruction = false;
@@ -239,7 +270,7 @@ static void before_timepulse(agc *m)
     /* The rewrite half of the destructive erasable cycle, before T10. */
     if (c->timepulse == 10 && c->s_writeback != 0) {
         agc_word addr = agc_erasable_absolute(c->s_writeback, c->eb);
-        agc_memory_write_erasable(&m->mem, addr, c->g);
+        agc_memory_write_erasable(&m->mem, addr, correct_sign_for_core(c));
         c->s_writeback = 0;
         if (addr == NIGHT_WATCHMAN_ADDR) {
             c->night_watchman = true;

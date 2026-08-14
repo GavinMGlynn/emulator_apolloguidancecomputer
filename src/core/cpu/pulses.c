@@ -488,10 +488,31 @@ static void p_l2gd(agc *m)
  * from two 14-bit cells by this pulse. */
 static void p_wovr(agc *m)
 {
+    unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
+
+    /* The shift-in counters do not overflow in the arithmetic sense. What WOVR
+     * tests for them is the flag bit every uplink, crosslink and downlink word
+     * starts with: it walks up the register and, when it reaches the top, TSGN
+     * has already copied it into BR1 at T5. Information Series #30 paragraph
+     * 30-119: "until the flag bit is detected and shifted out (discarded). At
+     * this instance, signal BR1/ is generated, which causes the generation of
+     * signal UPRUPT". */
+    if (m->cpu.shinc) {
+        if ((m->cpu.br & 0x2u) == 0) {
+            return;
+        }
+        switch (counter) {
+        case AGC_CNT_INLINK: m->cpu.interrupts[AGC_RUPT_UPRUPT] = true; break;
+        case AGC_CNT_RNRAD:  m->cpu.interrupts[AGC_RUPT_RADARRUPT] = true; break;
+        case AGC_CNT_OTLNK:  m->cpu.interrupts[AGC_RUPT_DOWNRUPT] = true; break;
+        default: break;
+        }
+        return;
+    }
+
     if (((unsigned)(m->cpu.write_bus & AGC_BITS(15, 16)) >> 14) != 0x1u) {
         return;
     }
-    unsigned counter = (unsigned)(m->cpu.s - AGC_COUNTER_BASE);
     switch (counter) {
     case AGC_CNT_TIME1: m->cpu.counters[AGC_CNT_TIME2] |= AGC_COUNT_UP; break;
     case AGC_CNT_TIME3: m->cpu.interrupts[AGC_RUPT_T3RUPT] = true; break;

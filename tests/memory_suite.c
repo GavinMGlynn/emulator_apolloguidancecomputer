@@ -18,20 +18,20 @@ static void test_an_erasable_read_destroys_the_word_it_returns(void)
 
 static void test_an_erasable_read_duplicates_the_sign_into_bit_16(void)
 {
-    /* A word going *into* erasable memory keeps 15 bits, and its sign is taken
-     * from bit 16 — that is how an overflowed accumulator loses its overflow on
-     * the way to storage. Coming back out, bit 15 is duplicated into bit 16. */
-    agc_memory_write_erasable(&m->mem, 0100, 0140000);
+    /* Core holds fifteen bits. Coming back out, bit 15 is duplicated into
+     * bit 16 so the adder and the sign tests see a 16-bit signed quantity. */
+    agc_memory_write_erasable(&m->mem, 0100, 040000);
     TEST_ASSERT_EQUAL_HEX16(040000, m->mem.erasable[0100]);
     TEST_ASSERT_EQUAL_HEX16(0140000, agc_memory_read_erasable(&m->mem, 0100));
 }
 
-static void test_storing_an_overflowed_word_keeps_bit_16_as_the_sign(void)
+static void test_core_stores_fifteen_bits_and_drops_bit_16(void)
 {
-    /* Bits 15,16 = 01 is positive overflow: bit 16 (0) is the true sign, so
-     * what lands in core is a positive word, not a negative one. */
-    agc_memory_write_erasable(&m->mem, 0100, 040000);
-    TEST_ASSERT_EQUAL_HEX16(0, m->mem.erasable[0100]);
+    /* Which of bits 15 and 16 survives when they disagree is decided on the way
+     * *to* core, by the machine, not here: memory just drops bit 16. See
+     * test_storing_an_overflowed_word_keeps_bit_16_as_the_sign. */
+    agc_memory_write_erasable(&m->mem, 0100, 0140000);
+    TEST_ASSERT_EQUAL_HEX16(040000, m->mem.erasable[0100]);
 }
 
 static void test_erasable_register_7_is_hard_wired_to_plus_zero(void)
@@ -116,7 +116,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_an_erasable_read_destroys_the_word_it_returns);
     RUN_TEST(test_an_erasable_read_duplicates_the_sign_into_bit_16);
-    RUN_TEST(test_storing_an_overflowed_word_keeps_bit_16_as_the_sign);
+    RUN_TEST(test_core_stores_fifteen_bits_and_drops_bit_16);
     RUN_TEST(test_erasable_register_7_is_hard_wired_to_plus_zero);
     RUN_TEST(test_unswitched_erasable_ignores_the_bank_register);
     RUN_TEST(test_switched_erasable_takes_its_high_bits_from_eb);

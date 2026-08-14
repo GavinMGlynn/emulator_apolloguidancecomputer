@@ -127,18 +127,35 @@ This is what turns "cycle-correct by construction" into a checkable claim.
       *Tails:* the PRO/STBY key and the hardware-driven RESTART and STBY lamps
       are not modelled (they are start-stop logic, not channel traffic); neither
       is the second DSKY, which sees identical relay words.
-- [ ] **Serial counters SHINC/SHANC**, closing the dropped-request approximation.
-      *Verification:* a probe shifting a known word into INLINK and reading it
-      back; the counter-request path no longer silently discards.
+- [x] **Serial counters SHINC/SHANC**, closing the dropped-request
+      approximation, plus the Inlink Control that drives them: channel 13's two
+      gating bits, the cabin block switch, the 156 microsecond rate limit and
+      its channel 33 "uplink too fast" bit. `ext/agcplusplus` has neither
+      sequence, so both come from AGC4 Memo #9 via the generator's own parse of
+      it.
+      *Verified:* `uplink_suite` (12 tests) shifts known words in and reads them
+      back, pins the flag-bit/UPRUPT rule and the rate limit, and measures the
+      sixteen MCTs a word steals from the program. **Luminary 099 acts on an
+      uplinked word**: four triple-redundant key codes raise UPRUPT and the
+      rope's own handler lights UPLINK ACTY. `--uplink KEY:MCT` sends from the
+      headless frontend. FINDINGS #61-66.
+      *Tails:* no crosslink partner is modelled, so a program that selects it
+      (channel 13 bit 5) stops hearing the uplink; and nothing yet shows a rope
+      acting on an uplinked word's *content* — see the display tail below.
 - [ ] **CDU** — the five angle counters, the error counters, coarse align, CDU
       ZERO. Closes the POUT/MOUT approximation.
       *Verification:* probes on PCDU/MCDU pulse trains against the counter
       sequences; channel 12 discrete edges.
 - [ ] **IMU / PIPA / gyro torquing.**
       *Verification:* gyro pulse counts per channel-14 command.
-- [ ] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
-      *Verification:* a known uplink word arriving in INLINK and raising UPRUPT
-      at the right MCT.
+- [~] **Uplink (UPRUPT) and downlink (DOWNRUPT) telemetry.**
+      *Done:* the uplink, above — a known word arrives in INLINK and raises
+      UPRUPT when its flag bit shifts out.
+      *Left:* the downlink. OTLNK shifts out through the same SHINC path and
+      DOWNRUPT is already wired to WOVR, but nothing drives channels 34/35 or
+      consumes the serialised word.
+      *Verification:* a rope's downlink list read back out of channels 34/35 at
+      the 50 or 100 words per second the telemetry format specifies.
 - [ ] **Radar (RNRAD, RADARRUPT).**
       *Verification:* probe.
 

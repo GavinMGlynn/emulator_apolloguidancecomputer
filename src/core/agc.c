@@ -9,6 +9,7 @@ void agc_init(agc *m)
     agc_memory_clear(&m->mem);
     agc_scaler_reset(&m->scaler);
     agc_dsky_reset(&m->dsky);
+    agc_uplink_reset(&m->uplink);
     agc_cpu_start(m);
 }
 
@@ -48,6 +49,7 @@ void agc_tick(agc *m)
 
     /* After the scaler, so the DSKY samples this pulse's flash phase. */
     agc_dsky_tick(m);
+    agc_uplink_tick(m);
 }
 
 void agc_tick_mct(agc *m)

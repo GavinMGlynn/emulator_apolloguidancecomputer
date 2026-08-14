@@ -138,6 +138,23 @@ static void test_adding_a_value_to_its_own_negation_gives_minus_zero(void)
     TEST_ASSERT_EQUAL_HEX16(0177777, m->cpu.a);
 }
 
+static void test_storing_an_overflowed_word_keeps_bit_16_as_the_sign(void)
+{
+    /* An accumulator holding positive overflow (bits 15,16 = 01) stored into
+     * erasable arrives as a *positive* word: the sign that survives is the
+     * corrected one, bit 16. This is the same rule that makes a counter wrap,
+     * and it is applied by the machine on the rewrite rather than by core. */
+    const unsigned code[] = { I_CA(K0), I_AD(K0), I_XCH(0100) };
+    load(code, 3);
+    konst(K0, 037777);            /* the largest positive word; doubling it
+                                   * overflows into bit 15 */
+    run_to_park();
+    /* 037777 + 037777 = 077776 in the accumulator: bits 15,16 = 01, positive
+     * overflow. Core keeps fifteen bits and the sign that survives is the
+     * corrected one, so the overflow is dropped and a positive 037776 lands. */
+    TEST_ASSERT_EQUAL_HEX16(037776, m->mem.erasable[0100]);
+}
+
 /* --- multiply, and the two things that inhibit its end-around carry ---------
  *
  * MP leaves a double-precision product in A (high) and L (low), each with its
@@ -393,6 +410,7 @@ int main(void)
     RUN_TEST(test_ad_adds_the_operand_to_the_accumulator);
     RUN_TEST(test_adding_a_negative_operand_uses_the_end_around_carry);
     RUN_TEST(test_adding_a_value_to_its_own_negation_gives_minus_zero);
+    RUN_TEST(test_storing_an_overflowed_word_keeps_bit_16_as_the_sign);
     RUN_TEST(test_multiply_leaves_the_double_precision_product_in_a_and_l);
     RUN_TEST(test_multiplying_the_largest_positive_operand_by_one_keeps_the_carry_out);
     RUN_TEST(test_multiplying_by_a_negative_operand_gives_a_negative_product);

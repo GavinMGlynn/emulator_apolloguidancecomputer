@@ -81,14 +81,15 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | Hardware alarms (PARITY FAIL, TC TRAP, RUPT LOCK, NIGHT WATCHMAN) | Working | `timing_suite`, one test per alarm, isolated with `alarm_inhibit` |
 | Priority control — counters (PINC, MINC, PCDU, MCDU, DINC) | Working | `timing_suite`: MCT stealing, address-order priority, TIME1→TIME2 carry, TIME3→T3RUPT |
 | Priority control — interrupts (vectoring, KRPT, RESUME, no nesting) | Working | Exercised by every rope boot; `cpu_suite` covers INHINT/RELINT |
-| Priority control — serial counters (SHINC, SHANC) | **Missing** | See gaps |
+| Priority control — serial counters (SHINC, SHANC) | Working | `uplink_suite`; sequences generated from AGC4 Memo #9, which is the only source — the reference model has neither |
+| Uplink / Inlink Control (channel 13 gating, rate limit, UPRUPT) | Working | `uplink_suite`; Luminary 099 raises UPRUPT on an uplinked word and lights UPLINK ACTY |
 | I/O channels (aliasing, inverted channels, edge detection) | Working, partial | `timing_suite` uses channel 13; no peripheral consumes the outputs yet |
 | DSKY — display (channel 10 relay banks, signs, status lights) | Working | `dsky_suite`; Sundial E's V05 N31 R2 01107 matches its own listing |
 | DSKY — lamps and the flash (channel 11, scaler stages 16/17) | Working | `dsky_suite`: the flash runs without the program, and in antiphase with KEY REL |
 | DSKY — keyboard (channels 15/16, KEYRUPT1/2) | Working | `dsky_suite`; a keypress into Luminary 099 lights KEY REL, `CHARIN`'s documented response |
 | DSKY — PRO/STBY key, RESTART and STBY lamps | **Missing** | Start-stop logic rather than channel traffic; see gaps |
 | CDU / IMU / gyro / PIPA | **Missing** | — |
-| Uplink / downlink / radar | **Missing** | — |
+| Downlink / radar | **Missing** | DOWNRUPT and RADARRUPT are wired to WOVR, but nothing drives them |
 | Headless frontend | Working | Used for every rope boot above |
 | SDL frontend | **Missing** | — |
 | Probe framework (`tools/probes/asm.py`, sentinels, `regress.py`) | Working | `probe_regression` in CTest, both build types |
@@ -144,7 +145,6 @@ Each has a reason and a cost to close, and each is a named item in
 
 | Approximation | Reason | Cost to close |
 |---|---|---|
-| **SHINC/SHANC counter requests are dropped, not serviced.** | The serial shift registers (uplink, radar) do not exist, and leaving a request pending would deadlock priority control. | Small once the uplink/radar registers exist; the sequences themselves are already in the tables. |
 | **POUT and MOUT do nothing.** | They drive the CDU error counters and gyro torque pulses; there is no CDU or IMU. Marked PROVISIONAL in `pulses.c`. | Medium — needs the CDU subsystem. |
 | **Channel 30's discretes are frozen** at "TEMP IN LIMITS, IMU OPERATE" and channels 31–33 at all-ones. | No spacecraft to drive them. Documented in `channels.c`. | Small per discrete, once there is something to model. |
 | **Fixed memory covers the full 40 960-word superbank span**, with only 36 864 populated. | An out-of-range fetch then reads zeroes and fails parity, which is what the hardware does when the sense lines find no rope. Not an approximation so much as a deliberate choice; recorded so it is not mistaken for a bug. | n/a |
@@ -176,7 +176,9 @@ Each has a reason and a cost to close, and each is a named item in
   plan item, not a claim that this works.
 - **Aurora 12's RUPT LOCK is uncharacterised.** It may be correct behaviour for
   a development rope that never arms an interrupt source, or it may be the
-  missing SHINC path. Characterise before fixing.
+  missing SHINC path. **The second hypothesis is now eliminated**: the serial
+  counters are implemented and Aurora 12 still latches the alarm at the same
+  point. Characterise before fixing.
 - **The gate reading is static, not a running simulation.** `gate_sim.py`
   evaluates the netlist to steady state per timing pulse, which is exactly right
   for a cross-point matrix (R-700 vol. III p. 5-6 calls it a logic product of

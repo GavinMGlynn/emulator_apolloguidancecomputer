@@ -83,6 +83,11 @@ extern const agc_subinst agc_subinst_minc;
 extern const agc_subinst agc_subinst_pcdu;
 extern const agc_subinst agc_subinst_mcdu;
 extern const agc_subinst agc_subinst_dinc;
+/* The serial shift-in sequences: SHINC shifts a zero into the counter, SHANC a
+ * one (its extra CI at T5 is the whole difference). Both hold the SHIFT line,
+ * which is what stops WYD rotating bit 16 back into bit 1. */
+extern const agc_subinst agc_subinst_shinc;
+extern const agc_subinst agc_subinst_shanc;
 
 /* Human-readable pulse mnemonic, for tracing. */
 const char *agc_pulse_name(enum agc_pulse p);

@@ -8,6 +8,7 @@ add_library(agc_core STATIC
     dsky/dsky.c
     io/channels.c
     io/counters.c
+    io/uplink.c
     memory/memory.c
     timing/scaler.c)
 

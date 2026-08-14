@@ -353,3 +353,41 @@ table, and saying so is what that code is for.)
 |---|---|
 | 59 | **The flight ropes display nothing until they are talked to.** Luminary 099, Comanche 055, Artemis 072 and Zerlina 56 all run DSPOUT — 208 relay words in 23 emulated seconds, cycling every bank — and every one of them is blank, with the PROG light on. A keypress does reach the software: pressing VERB lights KEY REL, which is `CHARIN`'s documented response to a key arriving while a flashing display is pending. Whether these ropes should reach a V37 display from a cold start without further input is a question about the ropes, not about the DSKY, and is a plan item rather than a fix. |
 | 60 | **A restart leaves the display standing.** GOJAM clears the output channels, so channel 11's lamps go out, but channel 10 only ever *addresses* a relay bank — clearing it selects bank 0 and resets nothing. The latching relays keep showing whatever they held. That asymmetry is free if the DSKY watches the same channel writes the machine makes, and wrong in both directions if it is modelled as a decoded display that gets cleared. |
+
+## The serial counters, and a bug they exposed
+
+| # | Question | Answer | Source |
+|---|---|---|---|
+| 61 | What do SHINC and SHANC do? | A fifteen-bit left shift of the addressed counter, bringing in a zero (SHINC) or a one (SHANC). The whole difference between the two sequences is a `CI` at T5. | AGC4 Memo #9. **`ext/agcplusplus` has neither** — the serial counters are the one part of priority control the reference model left out — so here the memo is not merely the primary source but the only one. The generator now emits them from its own parse of the memo (`FROM_THE_MEMO`), so they stay diffable rather than hand-copied. |
+| 62 | Which request line runs which sequence? | `INLNKP` -> SHINC, `INLNKM` -> SHANC; likewise RNRADP/M for the radar and OTLNKM for the downlink. | Information Series #30 **table 30-7**, read off the rendered page. Confirmed against the gates: module A19 turns UPL1 into INLNKP and UPL0 into INLNKM. |
+| 63 | What raises UPRUPT? | Not a counter and not a timer. Every uplink word starts with a flag bit, always a one; it walks up the register as the data arrives behind it and, when it is shifted out through bit 16 of the adder, TSGN has it in BR1 and WOVR turns that into the interrupt. | Information Series #30 paragraph 30-119, whose wording — "position 16 of the **Adder**" — is the detail that makes it work, since the flag never lands in the counter at all. |
+| 64 | How fast can the ground send? | One bit per 156.25 microseconds, the period of scaler stage 4. A bit arriving inside that window is dropped and channel 33 bit 11 is set to say so. | Information Series #30 paragraph 30-119A. |
+
+### The bug: a sign correction in the wrong place
+
+Implementing the shift turned up a defect that had nothing to do with the
+uplink. `agc_memory_write_erasable` was collapsing bit 16 into bit 15 on every
+erasable write — "the duplicated sign collapses back". That is *right* for
+almost everything, and it is what makes a counter wrap: TIME1 at 037777
+incremented is 040000, positive overflow, whose corrected sign is +, so +0 lands
+in core and WOVR carries the 1 into TIME2. Take it away and the AGC's 28-bit
+clock stops being a clock. `ext/agcplusplus` does exactly the same thing, in the
+same place.
+
+But a shift-in moves its outgoing bit through bit 16 *while bit 15 still carries
+data*, so correcting the sign there overwrites a real bit with the bit on its
+way out — and every uplink word silently loses one. Which is why the first
+working shift assembled the right answer and never interrupted.
+
+The hardware makes the distinction, and makes it in the write path rather than
+in the core: module A7 gate U7006 gates the normal G write with **SHIFT** (and
+with NEAC, multiply's equivalent of the same problem). So the correction moved
+out of `memory.c` — which now simply stores fifteen bits, because that is all a
+core stack has — and into the rewrite, where it can ask what the machine is
+doing. Two tests moved with it, from asserting the rule at the memory helper to
+asserting it through a real store.
+
+| # | Finding |
+|---|---|
+| 65 | **A latent bug can be invisible because two wrongs agree.** The old rule was wrong for shifts, but nothing shifted, so nothing noticed — and the differential test could not notice either, because the oracle collapses the same bit in the same place. It took implementing a subsystem the reference model does not have to expose it. That is worth remembering about differential testing generally: it finds where you disagree with the model, never where you agree with it and both are wrong. |
+| 66 | **Luminary 099 acts on an uplinked word.** Four triple-redundant key codes sent from the ground raise UPRUPT and the rope's own handler lights UPLINK ACTY — `CAF BIT3 / WOR DSALMOUT`, "TURN ON UPACT LIGHT", the first thing UPRUPT does. Sixty-four bits sent, sixty-four accepted, none refused. What this does *not* yet show is the rope acting on the *content*: the lamp is lit before the redundancy check runs, and a deliberately corrupted word produces the same lamps, because these ropes are in the same waiting state that leaves their display blank. |
