@@ -200,11 +200,21 @@ This is what turns "cycle-correct by construction" into a checkable claim.
 
 ## Phase 4 — Frontends and content
 
-- [ ] **SDL frontend** — a real DSKY: seven-segment display, keypad, lamps,
-      paced from a core-side output ring rather than a wall-clock timer, plus a
-      `--frames` bounded mode so it can be smoke-tested headlessly.
-      *Verification:* boots a rope and displays V37 under a dummy SDL driver in
-      CI.
+- [x] **SDL frontend** — a real DSKY on SDL3: seven-segment digits drawn as
+      segments (no font, no assets), the three-segment signs, the lamps, and a
+      keypad mapped to the keyboard including PROCEED. `--frames N` bounds a run
+      and `--screenshot PATH` writes the panel to a PNG through libpng, which is
+      how a headless run gets verified on the real output rather than a proxy.
+      *Verified:* `dsky_frontend` in CTest runs it under SDL's dummy video
+      driver and checks the panel matches what the headless frontend reads off
+      the same rope — **Sundial E's `VERB 05 NOUN 31` with `01107` in R2**, not
+      V37: no flight rope reaches a display from a cold start (see the tail
+      below), so the plan's original wording named a check that could not pass.
+      *Pacing:* on emulated time rather than a wall clock or an audio queue —
+      the AGC has no audio, and determinism stays in the headless frontend,
+      which is what the goldens describe.
+      *Tail:* built only where SDL3 is present, and not vendored as a submodule;
+      the four-platform CI matrix will skip it until it is.
 - [x] **Run the Validation suite to completion and read its verdict.** It turns
       out not to write a pass/fail cell at all: it reports through the DSKY, the
       way it would report to a technician standing in front of one — a code in

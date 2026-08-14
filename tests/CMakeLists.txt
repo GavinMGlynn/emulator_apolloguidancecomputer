@@ -104,6 +104,17 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(physical_rope_modules PROPERTIES TIMEOUT 600)
 endif()
 
+# The interactive DSKY, run headlessly under SDL's dummy video driver. A display
+# that silently stops updating looks fine, so it is worth checking in CI that
+# the panel still shows what the headless frontend reads off the same rope.
+# Skips when SDL3 was not found or the rope is not assembled.
+if(Python3_Interpreter_FOUND AND TARGET agc_dsky)
+    add_test(NAME dsky_frontend
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/dsky_smoke.py
+                     --exe $<TARGET_FILE:agc_dsky>)
+    set_tests_properties(dsky_frontend PROPERTIES TIMEOUT 300)
+endif()
+
 # The widest net in the project: the whole of erasable memory plus the register
 # file after 200,000 MCTs of real flight software, hashed. The probes check what
 # we thought to check; this notices a divergence anywhere in 2048 words, in

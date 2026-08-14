@@ -125,7 +125,7 @@ verdict, so correctness elsewhere rests on unit tests rather than on MIT's suite
 | Radar (channel 13 selection, RNRAD, RADARRUPT) | Working | `telemetry_suite` |
 | Altitude meter counter ALT (0060) | **Missing** | Our counter table stops at OUTLNK; LM only |
 | Headless frontend | Working | Used for every rope boot above |
-| SDL frontend | **Missing** | — |
+| SDL frontend (a real DSKY) | Working | `dsky_frontend` in CTest, under SDL's dummy driver; `--screenshot` writes the panel to PNG |
 | Probe framework (`tools/probes/asm.py`, sentinels, `regress.py`) | Working | `probe_regression` in CTest, both build types |
 | Instruction-timing verification | Working | `timing` probe: 26 instructions asserted against the memo |
 | Counter-interference verification | Working | `counters` probe: 31 whole MCTs stolen, invariants asserted |
